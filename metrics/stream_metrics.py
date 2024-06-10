@@ -1,6 +1,10 @@
 import numpy as np
 from sklearn.metrics import confusion_matrix
 import ipdb
+<<<<<<< HEAD
+=======
+import matplotlib.pyplot as plt
+>>>>>>> 2e949b94dcb63ab81414874e7e946d7c25a03f47
 
 class _StreamMetrics(object):
     def __init__(self):
@@ -55,16 +59,29 @@ class StreamSegMetrics(_StreamMetrics):
         ).reshape(self.n_classes, self.n_classes)
         return hist
 
-    def get_results(self):
+    def get_results(self, dataset):
         """Returns accuracy score evaluation result.
             - overall accuracy
             - mean accuracy
             - mean IU
             - fwavacc
         """
-        ipdb.set_trace()
-        
+        # ipdb.set_trace()
+
         hist = self.confusion_matrix
+        hist_copy = hist / hist.sum(axis=1, keepdims=True) * 100
+        
+        # figure 크기 설정
+        plt.figure(figsize=(14, 14))  # 크기를 원하는대로 조정
+
+        plt.imshow(hist_copy, cmap='Blues')
+        plt.colorbar()
+        for i in range(hist_copy.shape[0]):
+            for j in range(hist_copy.shape[1]):
+                plt.text(j, i, f'{hist_copy[i, j]:.2f}', ha='center', va='center', fontsize=8, color='white')
+        plt.savefig(f"confusion_matrix_{dataset}")
+        plt.close()
+
         acc = np.diag(hist).sum() / hist.sum()
         acc_cls = np.diag(hist) / hist.sum(axis=1)
         acc_cls = np.nanmean(acc_cls)
@@ -84,6 +101,10 @@ class StreamSegMetrics(_StreamMetrics):
         
     def reset(self):
         self.confusion_matrix = np.zeros((self.n_classes, self.n_classes))
+
+  
+
+
 
 class AverageMeter(object):
     """Computes average values"""

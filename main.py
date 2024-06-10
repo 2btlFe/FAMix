@@ -73,14 +73,13 @@ def get_argparser():
     return parser
 
 
-def validate(model, loader, device, metrics):
+def validate(model, loader, device, metrics, dataset):
     """Do validation and return specified samples"""
     metrics.reset()
 
     with torch.no_grad():
-
         for i, (images, labels) in tqdm(enumerate(loader), total=len(loader)):
-            # ipdb.set_trace()
+            
             images = images.to(device, dtype=torch.float32)
             labels = labels.to(device, dtype=torch.long)
 
@@ -91,7 +90,7 @@ def validate(model, loader, device, metrics):
            
             metrics.update(targets, preds)
 
-        score = metrics.get_results()
+        score = metrics.get_results(dataset)
     return score
 
 
@@ -208,7 +207,7 @@ def main():
        
         model.eval()
 
-        val_score = validate(model=model, loader=val_loader, device=device, metrics=metrics)
+        val_score = validate(model=model, loader=val_loader, device=device, metrics=metrics, dataset=opts.dataset)
 
         print(metrics.to_str(val_score))
         print(val_score["Mean IoU"])
