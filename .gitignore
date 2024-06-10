@@ -1,0 +1,5 @@
+*.jpg
+*.txt
+*.pth
+*.pkl
+runs/
