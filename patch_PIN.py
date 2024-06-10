@@ -10,9 +10,11 @@ import random
 import argparse
 from utils.get_dataset import get_dataset
 from torch.utils import data
-from utils.utils import freeze_all
+from utils.freeze import freeze_all
 from torch.nn.functional import unfold
 from utils.PPIN import PPIN 
+import ipdb
+from tqdm import tqdm
 
 from torch.utils.tensorboard import SummaryWriter
 
@@ -236,15 +238,17 @@ def main(random_styles=random_styles):
     }
 
 
-    for i,(images, labels) in enumerate(train_loader):
+    for i, (images, labels) in enumerate(tqdm(train_loader)):
             print("i = ",i)
   
             f1 = model.backbone(images.to(device),trunc1=False,trunc2=False,
             trunc3=False,trunc4=False,get1=True,get2=False,get3=False,get4=False)
               
             #the target text is determined by the most frequent class in the corresponding crop
+            #ipdb.set_trace()
             labels_ = labels.unsqueeze(1)  # (B,1,768,768)
-            lbl_patches = unfold(labels_, kernel_size=256, stride=256).permute(-1,0,1).reshape(-1,1,256,256) ## (div*div*B,1,H/div,W/div)
+            labels_ = labels_.float()
+            lbl_patches = unfold(labels_, kernel_size=256, stride=256).permute(-1,0,1).reshape(-1,1,256,256) ## (div*div*B,1,H/div,W/div)  - div is 3
 
             most_list = []
             

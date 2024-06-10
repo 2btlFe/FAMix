@@ -4,7 +4,7 @@ from torch.utils import data
 from PIL import Image
 import torch
 from collections import namedtuple
-
+import ipdb
 
 class GTA5DataSet(data.Dataset):
 
@@ -52,7 +52,7 @@ class GTA5DataSet(data.Dataset):
     train_id_to_color.append([0, 0, 0])
     train_id_to_color = np.array(train_id_to_color)
 
-    def __init__(self, root, list_path, ignore_label=255,transform=None):
+    def __init__(self, root, list_path, ignore_label=255,transform=None, isTrain=True):
         self.root = root
         self.list_path = list_path
         self.ignore_label = ignore_label
@@ -66,10 +66,13 @@ class GTA5DataSet(data.Dataset):
                               19: 6, 20: 7, 21: 8, 22: 9, 23: 10, 24: 11, 25: 12,
                               26: 13, 27: 14, 28: 15, 31: 16, 32: 17, 33: 18}
 
-        # for split in ["train", "trainval", "val"]:
+        # for split in ["train", "trainval", "val"]:        
+        img_dir_name = 'images/train' if isTrain else 'images/val'
+        label_dir_name = 'labels/train' if isTrain else 'labels/valid'
+
         for name in self.img_ids:
-            img_file = osp.join(self.root, "images/%s" % name)
-            label_file = osp.join(self.root, "labels/%s" % name)
+            img_file = osp.join(self.root, f"{img_dir_name}/%s" % name)     #train 추가
+            label_file = osp.join(self.root, f"{label_dir_name}/%s" % name)   #train 추가
             self.files.append({
                 "img": img_file,
                 "label": label_file,
@@ -95,8 +98,10 @@ class GTA5DataSet(data.Dataset):
     
         # re-assign labels to match the format of Cityscapes
         label_copy = 255 * torch.ones(label.shape, dtype=torch.float32)
-     
+
+        #ipdb.set_trace()
         for k, v in self.id_to_trainid.items():
+            #print(k, v)
             label_copy[label == k] = v
 
         return image, label_copy

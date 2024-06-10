@@ -1,5 +1,6 @@
 import numpy as np
 from sklearn.metrics import confusion_matrix
+import ipdb
 
 class _StreamMetrics(object):
     def __init__(self):
@@ -61,6 +62,8 @@ class StreamSegMetrics(_StreamMetrics):
             - mean IU
             - fwavacc
         """
+        ipdb.set_trace()
+        
         hist = self.confusion_matrix
         acc = np.diag(hist).sum() / hist.sum()
         acc_cls = np.diag(hist) / hist.sum(axis=1)

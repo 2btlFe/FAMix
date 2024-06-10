@@ -1,16 +1,22 @@
-name: famix_env
-dependencies:
-  - python
+name: famix_env2
+channels:
+  - defaults
+  - conda-forge
   - pytorch
+dependencies:
+  - python=3.8
   - numpy
   - matplotlib
   - pillow
   - scikit-learn
-  - torchvision
+  - torchvision<=0.12.0
+  - cudatoolkit=11.3
   - pip
   - pip:
-    - pickle5
-    - tqdm
-    - ftfy 
-    - regex
-    - git+https://github.com/openai/CLIP.git
+      - pickle5
+      - tqdm
+      - ftfy
+      - regex
+      - git+https://github.com/openai/CLIP.git
+  - pytorch<=1.11.0  # PyTorch 버전 1.12.1보다 낮게 설정
+
