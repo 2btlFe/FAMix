@@ -3,3 +3,4 @@
 *.pth
 *.pkl
 runs/
+*.pyc
