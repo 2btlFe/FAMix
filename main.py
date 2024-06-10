@@ -70,8 +70,8 @@ def get_argparser():
     parser.add_argument("--path_for_stats",type=str, help="path for the optimized stats")
     
     parser.add_argument("--transfer", action='store_true',default=True)
+    parser.add_argument("--div", type=int, default=3, help="number of divisions for the image")
     return parser
-
 
 def validate(model, loader, device, metrics, dataset):
     """Do validation and return specified samples"""
@@ -191,12 +191,12 @@ def main():
     # ==========   Train Loop   ==========#
 
 
-    #     return
+    # return
 
     interval_loss = 0
 
     if not opts.test_only: 
-        with open(opts.path_for_stats+'/saved_params.pkl', 'rb') as f:
+        with open(opts.path_for_stats, 'rb') as f:
 
             loaded_dict_patches = pickle.load(f)
 
@@ -242,8 +242,11 @@ def main():
             labels_ = labels.unsqueeze(1)  # (B,1,768,768)
             # lbl_patches = divide_in_patches(labels_,3)
 
-            lbl_patches = unfold(labels_, kernel_size=256, stride=256).permute(-1,0,1)
-            lbl_patches = lbl_patches.reshape(lbl_patches.shape[0],lbl_patches.shape[1],1,256,256) #### (div*div, B, 1, H/div, W/div)
+            side = labels.size()[2]
+            new_side = int(side // opts.div)
+
+            lbl_patches = unfold(labels_, kernel_size=new_side, stride=new_side).permute(-1,0,1)
+            lbl_patches = lbl_patches.reshape(lbl_patches.shape[0],lbl_patches.shape[1],1,new_side,new_side) #### (div*div, B, 1, H/div, W/div)
             lbl_patches = lbl_patches.to(torch.long)
 
             most_list = []

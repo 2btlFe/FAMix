@@ -133,7 +133,8 @@ def get_argparser():
 
     parser.add_argument("--gpu_id", type=str, default='0', help="GPU ID")
     parser.add_argument("--data_root", type=str, default='/datasets_master/gta5', help="path to dataset")
-    parser.add_argument("--save_dir", type=str, help= "path for learnt parameters saving")
+    parser.add_argument("--save_dir", type=str, default='results', help="path to save results")
+    parser.add_argument("--save_path", type=str, help= "path for learnt parameters saving")
     parser.add_argument("--dataset", type=str, default='gta5', choices=['cityscapes','gta5','synthia'], help='Name of dataset')
     parser.add_argument("--crop_size", type=int, default=768)
     parser.add_argument("--batch_size", type=int, default=16, help='batch size (default: 16)')
@@ -153,7 +154,8 @@ def get_argparser():
     parser.add_argument("--random_seed", type=int, default=1, help="random seed (default: 1)")
     #data augmentation
     parser.add_argument("--data_aug", action='store_true',default=False)
-   
+    parser.add_argument("--patch_size", type=int, default=3, help="patch_size")
+
     return parser
 
 def main(random_styles=random_styles):
@@ -248,7 +250,13 @@ def main(random_styles=random_styles):
             #ipdb.set_trace()
             labels_ = labels.unsqueeze(1)  # (B,1,768,768)
             labels_ = labels_.float()
-            lbl_patches = unfold(labels_, kernel_size=256, stride=256).permute(-1,0,1).reshape(-1,1,256,256) ## (div*div*B,1,H/div,W/div)  - div is 3
+
+            # div chang
+            # ipdb.set_trace()
+            side = labels.size()[2]
+            new_side = int(side // opts.div)
+
+            lbl_patches = unfold(labels_, kernel_size=new_side, stride=new_side).permute(-1,0,1).reshape(-1,1,new_side,new_side) ## (div*div*B,1,H/div,W/div)  - div is 3
 
             most_list = []
             
@@ -341,7 +349,7 @@ def main(random_styles=random_styles):
             model_ppin.to('cpu')
 
 
-    with open(opts.save_dir+'/saved_params.pkl', 'wb') as f:
+    with open(opts.save_path, 'wb') as f:
         pickle.dump(stats, f)
             
 
