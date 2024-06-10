@@ -1,0 +1,7 @@
+*.jpg
+*.txt
+*.pth
+*.pkl
+runs/
+*.pyc
+*.png
