@@ -83,8 +83,8 @@ def get_dataset(dataset,data_root,crop_size,ACDC_sub="night",data_aug=True):
                             std=[0.26862954, 0.26130258, 0.27577711]),
         ])
 
-        train_dst = gta5.GTA5DataSet(data_root, 'datasets/gta5_list/gtav_split_train.txt',transform=train_transform)
-        val_dst = gta5.GTA5DataSet(data_root, 'datasets/gta5_list/gtav_split_val.txt',transform=val_transform)
+        train_dst = gta5.GTA5DataSet(data_root, 'datasets/gta5_list/gtav_split_train.txt',transform=train_transform, isTrain=True)
+        val_dst = gta5.GTA5DataSet(data_root, 'datasets/gta5_list/gtav_split_val.txt',transform=val_transform, isTrain=False)
 
 
     ###### Synthia

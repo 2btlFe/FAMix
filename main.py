@@ -73,13 +73,13 @@ def get_argparser():
     return parser
 
 
-def validate(model, loader, device, metrics):
+def validate(model, loader, device, metrics, dataset):
     """Do validation and return specified samples"""
     metrics.reset()
 
     with torch.no_grad():
-
         for i, (images, labels) in tqdm(enumerate(loader), total=len(loader)):
+            
             images = images.to(device, dtype=torch.float32)
             labels = labels.to(device, dtype=torch.long)
 
@@ -90,7 +90,7 @@ def validate(model, loader, device, metrics):
            
             metrics.update(targets, preds)
 
-        score = metrics.get_results()
+        score = metrics.get_results(dataset)
     return score
 
 
@@ -103,7 +103,7 @@ def main():
 
     # Setup random seed
     # INIT
-    torch.manual_seed(opts.random_seed)
+    torch.manual_seed(opts.random_seed) # set to 1 
     torch.cuda.manual_seed(opts.random_seed)
     np.random.seed(opts.random_seed)
     random.seed(opts.random_seed)
@@ -116,7 +116,7 @@ def main():
     if not opts.test_only:
         train_loader = data.DataLoader(
             train_dst, batch_size=opts.batch_size, shuffle=True, num_workers=4,
-        drop_last=True)  # drop_last=True to ignore single-image batches.
+        drop_last=True)  # drop_last=True to ignore single-image batches. Drop last batch if it doesn't batch 10
 
     val_loader = data.DataLoader(
         val_dst, batch_size=opts.val_batch_size, shuffle=True, num_workers=4)
@@ -207,14 +207,15 @@ def main():
        
         model.eval()
 
-        val_score = validate(model=model, loader=val_loader, device=device, metrics=metrics)
+        val_score = validate(model=model, loader=val_loader, device=device, metrics=metrics, dataset=opts.dataset)
 
         print(metrics.to_str(val_score))
         print(val_score["Mean IoU"])
         print(val_score["Class IoU"])
-        save_txt = "logs_PODA_val_gta5.txt"
+        save_txt = f"logs_PODA_val_gta5_{opts.dataset}.txt"
         with open(save_txt, 'a') as f:
             f.write(f'{val_score["Mean IoU"]}\n')
+            f.write(f'{val_score["Class IoU"]}\n') 
         return
 
 
@@ -230,7 +231,7 @@ def main():
 
         cur_epochs += 1
        
-        for i, (images, labels) in enumerate(train_loader):
+        for i, (images, labels) in tqdm(enumerate(train_loader), desc="Training", unit="batch", unit_scale=True):
             
             cur_itrs += 1
             images = images.to(device, dtype=torch.float32)
@@ -274,6 +275,7 @@ def main():
                     (cur_epochs, cur_itrs, opts.total_itrs, interval_loss))
                 interval_loss = 0.0
 
+            # Performance of GTAV can be used to tradeoff 
             if (cur_itrs) % opts.val_interval == 0 or cur_itrs == opts.total_itrs:
              
                 save_ckpt(opts.ckpts_path+'/latest_%s_%s_'%
@@ -295,6 +297,7 @@ def main():
 
                 writer.add_scalar("mIoU", val_score['Mean IoU'] ,cur_itrs)
 
+                # 아니 이거는 도대체가 무슨 심보지 - transfer learning을 최대한 활용하겠다는 건가
                 if opts.dataset == "gta5":
                     model.backbone.layer4[2].train()
                 elif opts.dataset == "cityscapes":

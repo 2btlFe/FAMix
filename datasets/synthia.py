@@ -7,7 +7,7 @@ import numpy as np
 from PIL import Image
 import imageio
 from torch.utils import data
-
+import ipdb
 
 num_classes = 19
 ignore_label = 255
@@ -79,7 +79,8 @@ def make_dataset(root, mode):
     assert mode in ['train', 'val', 'test', 'trainval']
     img_dir_name = 'RGB'
     img_path = os.path.join(root, img_dir_name)
-    mask_path = os.path.join(root, 'GT', 'LABELS')
+    # mask_path = os.path.join(root, 'GT', 'LABELS')
+    mask_path = os.path.join(root, 'labels_detectron2')
     mask_postfix = '.png'
     if mode == 'trainval':
         modes = ['train', 'val']
@@ -109,16 +110,16 @@ class Synthia(data.Dataset):
 
         img_path, mask_path = self.imgs[index]
 
-        img, mask = Image.open(img_path).convert('RGB'), imageio.imread(mask_path, format='PNG-FI')
+        img, mask = Image.open(img_path).convert('RGB'), imageio.imread(mask_path) #, format='PNG-FI')
 
         # This mask has pixel classes and instance IDs
-        mask = np.array(mask, dtype=np.uint8)[:,:,0]
-        mask_copy = mask.copy()
-        for k, v in trainid_to_trainid.items():
-            mask_copy[mask == k] = v
+        #mask = np.array(mask, dtype=np.uint8)[:,:,0]
+        mask = np.array(mask, dtype=np.uint8)
+        # mask_copy = mask.copy()
+        # for k, v in trainid_to_trainid.items():
+        #     mask_copy[mask == k] = v
 
-
-        mask = Image.fromarray(mask_copy.astype(np.uint8))
+        mask = Image.fromarray(mask.astype(np.uint8))
 
         # Transformations
     

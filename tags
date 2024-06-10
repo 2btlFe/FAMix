@@ -1,0 +1,225 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.9~svn20110310	//
+ASPP	network/_deeplab.py	/^class ASPP(nn.Module):$/;"	c
+ASPPConv	network/_deeplab.py	/^class ASPPConv(nn.Sequential):$/;"	c
+ASPPPooling	network/_deeplab.py	/^class ASPPPooling(nn.Sequential):$/;"	c
+AttentionPool2d	network/backbone/resnet_clip.py	/^class AttentionPool2d(nn.Module):$/;"	c
+AverageMeter	metrics/stream_metrics.py	/^class AverageMeter(object):$/;"	c
+BDD100K	datasets/bdd100k.py	/^class BDD100K(data.Dataset):$/;"	c
+Bottleneck	network/backbone/resnet_clip.py	/^class Bottleneck(nn.Module):$/;"	c
+CLIP_encoder	network/backbone/resnet_clip.py	/^class CLIP_encoder(nn.Module):$/;"	c
+CenterCropPad	utils/ext_transforms.py	/^class CenterCropPad(object):$/;"	c
+Cityscapes	datasets/cityscapes.py	/^class Cityscapes(data.Dataset):$/;"	c
+CityscapesClass	datasets/cityscapes.py	/^    CityscapesClass = namedtuple('CityscapesClass', ['name', 'id', 'train_id', 'train_id_16', 'category', 'category_id',$/;"	v	class:Cityscapes
+CityscapesClass	datasets/gta5.py	/^    CityscapesClass = namedtuple('CityscapesClass', ['name', 'id', 'train_id', 'category', 'category_id',$/;"	v	class:GTA5DataSet
+CityscapesClass	predict.py	/^CityscapesClass = namedtuple('CityscapesClass', ['name', 'id', 'train_id', 'category', 'category_id',$/;"	v
+Compose	utils/ext_transforms.py	/^class Compose(object):$/;"	c
+DeepLabHeadV3Plus	network/_deeplab.py	/^class DeepLabHeadV3Plus(nn.Module):$/;"	c
+DeepLabV3	network/_deeplab.py	/^class DeepLabV3(_Segmentation):$/;"	c
+ExtCenterCrop	utils/ext_transforms.py	/^class ExtCenterCrop(object):$/;"	c
+ExtColorJitter	utils/ext_transforms.py	/^class ExtColorJitter(object):$/;"	c
+ExtCompose	utils/ext_transforms.py	/^class ExtCompose(object):$/;"	c
+ExtNormalize	utils/ext_transforms.py	/^class ExtNormalize(object):$/;"	c
+ExtRandomCrop	utils/ext_transforms.py	/^class ExtRandomCrop(object):$/;"	c
+ExtRandomHorizontalFlip	utils/ext_transforms.py	/^class ExtRandomHorizontalFlip(object):$/;"	c
+ExtToTensor	utils/ext_transforms.py	/^class ExtToTensor(object):$/;"	c
+GTA5DataSet	datasets/gta5.py	/^class GTA5DataSet(data.Dataset):$/;"	c
+Label	datasets/cityscapes_labels.py	/^Label = namedtuple( 'Label' , [$/;"	v
+Lambda	utils/ext_transforms.py	/^class Lambda(object):$/;"	c
+Mapillary	datasets/mapillary.py	/^class Mapillary(data.Dataset):$/;"	c
+ModifiedResNet	network/backbone/resnet_clip.py	/^class ModifiedResNet(nn.Module):$/;"	c
+PPIN	utils/PPIN.py	/^class PPIN(nn.Module):$/;"	c
+PolyLR	utils/scheduler.py	/^class PolyLR(_LRScheduler):$/;"	c
+RandomCrop	utils/ext_transforms.py	/^class RandomCrop(object):$/;"	c
+RandomSizeAndCrop	utils/ext_transforms.py	/^class RandomSizeAndCrop(object):$/;"	c
+ResizeHeight	utils/ext_transforms.py	/^class ResizeHeight(object):$/;"	c
+StreamSegMetrics	metrics/stream_metrics.py	/^class StreamSegMetrics(_StreamMetrics):$/;"	c
+Synthia	datasets/synthia.py	/^class Synthia(data.Dataset):$/;"	c
+_Segmentation	network/utils.py	/^class _Segmentation(nn.Module):$/;"	c
+_StreamMetrics	metrics/stream_metrics.py	/^class _StreamMetrics(object):$/;"	c
+__all__	network/_deeplab.py	/^__all__ = ["DeepLabV3"]$/;"	v
+__call__	utils/ext_transforms.py	/^    def __call__(self, img):$/;"	m	class:Compose	file:
+__call__	utils/ext_transforms.py	/^    def __call__(self, img):$/;"	m	class:Lambda	file:
+__call__	utils/ext_transforms.py	/^    def __call__(self, img, lbl):$/;"	m	class:ExtCenterCrop	file:
+__call__	utils/ext_transforms.py	/^    def __call__(self, img, lbl):$/;"	m	class:ExtColorJitter	file:
+__call__	utils/ext_transforms.py	/^    def __call__(self, img, lbl):$/;"	m	class:ExtCompose	file:
+__call__	utils/ext_transforms.py	/^    def __call__(self, img, lbl):$/;"	m	class:ExtRandomCrop	file:
+__call__	utils/ext_transforms.py	/^    def __call__(self, img, lbl):$/;"	m	class:ExtRandomHorizontalFlip	file:
+__call__	utils/ext_transforms.py	/^    def __call__(self, img, mask):$/;"	m	class:CenterCropPad	file:
+__call__	utils/ext_transforms.py	/^    def __call__(self, img, mask):$/;"	m	class:ResizeHeight	file:
+__call__	utils/ext_transforms.py	/^    def __call__(self, img, mask, centroid=None, pos=None):$/;"	m	class:RandomCrop	file:
+__call__	utils/ext_transforms.py	/^    def __call__(self, img, mask, centroid=None, pos=None):$/;"	m	class:RandomSizeAndCrop	file:
+__call__	utils/ext_transforms.py	/^    def __call__(self, pic, lbl):$/;"	m	class:ExtToTensor	file:
+__call__	utils/ext_transforms.py	/^    def __call__(self, tensor, lbl):$/;"	m	class:ExtNormalize	file:
+__getitem__	datasets/bdd100k.py	/^    def __getitem__(self, index):$/;"	m	class:BDD100K	file:
+__getitem__	datasets/cityscapes.py	/^    def __getitem__(self, index):$/;"	m	class:Cityscapes	file:
+__getitem__	datasets/gta5.py	/^    def __getitem__(self, index):$/;"	m	class:GTA5DataSet	file:
+__getitem__	datasets/mapillary.py	/^    def __getitem__(self, index):$/;"	m	class:Mapillary	file:
+__getitem__	datasets/synthia.py	/^    def __getitem__(self, index):$/;"	m	class:Synthia	file:
+__init__	datasets/bdd100k.py	/^    def __init__(self, root, mode,$/;"	m	class:BDD100K
+__init__	datasets/cityscapes.py	/^    def __init__(self, root,  dataset='cityscapes', split='train', mode='fine', target_type='semantic', transform=None, ACDC_sub = 'night'$/;"	m	class:Cityscapes
+__init__	datasets/gta5.py	/^    def __init__(self, root, list_path, ignore_label=255,transform=None):$/;"	m	class:GTA5DataSet
+__init__	datasets/mapillary.py	/^    def __init__(self, root, quality, mode,$/;"	m	class:Mapillary
+__init__	datasets/synthia.py	/^    def __init__(self, root, mode, transform=None):$/;"	m	class:Synthia
+__init__	metrics/stream_metrics.py	/^    def __init__(self):$/;"	m	class:AverageMeter
+__init__	metrics/stream_metrics.py	/^    def __init__(self):$/;"	m	class:_StreamMetrics
+__init__	metrics/stream_metrics.py	/^    def __init__(self, n_classes):$/;"	m	class:StreamSegMetrics
+__init__	network/_deeplab.py	/^    def __init__(self, in_channels, atrous_rates):$/;"	m	class:ASPP
+__init__	network/_deeplab.py	/^    def __init__(self, in_channels, low_level_channels, num_classes, aspp_dilate=[12, 24, 36]):$/;"	m	class:DeepLabHeadV3Plus
+__init__	network/_deeplab.py	/^    def __init__(self, in_channels, out_channels):$/;"	m	class:ASPPPooling
+__init__	network/_deeplab.py	/^    def __init__(self, in_channels, out_channels, dilation):$/;"	m	class:ASPPConv
+__init__	network/backbone/resnet_clip.py	/^    def __init__(self, inplanes, planes, stride=1,dilation=1):$/;"	m	class:Bottleneck
+__init__	network/backbone/resnet_clip.py	/^    def __init__(self, layers,output_dim, heads, input_resolution=224, width=64,replace_stride_with_dilation=[False,False,True]):$/;"	m	class:ModifiedResNet
+__init__	network/backbone/resnet_clip.py	/^    def __init__(self, spacial_dim: int, embed_dim: int, num_heads: int, output_dim: int = None):$/;"	m	class:AttentionPool2d
+__init__	network/backbone/resnet_clip.py	/^    def __init__(self,$/;"	m	class:CLIP_encoder
+__init__	network/utils.py	/^    def __init__(self, backbone,classifier):$/;"	m	class:_Segmentation
+__init__	utils/PPIN.py	/^    def __init__(self,content_feat,div=3,ind=[]):$/;"	m	class:PPIN
+__init__	utils/ext_transforms.py	/^    def __init__(self, brightness=0, contrast=0, saturation=0, hue=0):$/;"	m	class:ExtColorJitter
+__init__	utils/ext_transforms.py	/^    def __init__(self, lambd):$/;"	m	class:Lambda
+__init__	utils/ext_transforms.py	/^    def __init__(self, mean, std):$/;"	m	class:ExtNormalize
+__init__	utils/ext_transforms.py	/^    def __init__(self, normalize=True, target_type='uint8'):$/;"	m	class:ExtToTensor
+__init__	utils/ext_transforms.py	/^    def __init__(self, p=0.5):$/;"	m	class:ExtRandomHorizontalFlip
+__init__	utils/ext_transforms.py	/^    def __init__(self, size):$/;"	m	class:ExtCenterCrop
+__init__	utils/ext_transforms.py	/^    def __init__(self, size, crop_nopad=False,$/;"	m	class:RandomSizeAndCrop
+__init__	utils/ext_transforms.py	/^    def __init__(self, size, ignore_index=0):$/;"	m	class:CenterCropPad
+__init__	utils/ext_transforms.py	/^    def __init__(self, size, ignore_index=0, nopad=True):$/;"	m	class:RandomCrop
+__init__	utils/ext_transforms.py	/^    def __init__(self, size, interpolation=Image.BICUBIC):$/;"	m	class:ResizeHeight
+__init__	utils/ext_transforms.py	/^    def __init__(self, size, padding=0, pad_if_needed=False):$/;"	m	class:ExtRandomCrop
+__init__	utils/ext_transforms.py	/^    def __init__(self, transforms):$/;"	m	class:Compose
+__init__	utils/ext_transforms.py	/^    def __init__(self, transforms):$/;"	m	class:ExtCompose
+__init__	utils/scheduler.py	/^    def __init__(self, optimizer, max_iters, power=0.9, last_epoch=-1, min_lr=1e-6):$/;"	m	class:PolyLR
+__len__	datasets/bdd100k.py	/^    def __len__(self):$/;"	m	class:BDD100K	file:
+__len__	datasets/cityscapes.py	/^    def __len__(self):$/;"	m	class:Cityscapes	file:
+__len__	datasets/gta5.py	/^    def __len__(self):$/;"	m	class:GTA5DataSet	file:
+__len__	datasets/mapillary.py	/^    def __len__(self):$/;"	m	class:Mapillary	file:
+__len__	datasets/synthia.py	/^    def __len__(self):$/;"	m	class:Synthia	file:
+__repr__	utils/ext_transforms.py	/^    def __repr__(self):$/;"	m	class:Compose	file:
+__repr__	utils/ext_transforms.py	/^    def __repr__(self):$/;"	m	class:ExtCenterCrop	file:
+__repr__	utils/ext_transforms.py	/^    def __repr__(self):$/;"	m	class:ExtColorJitter	file:
+__repr__	utils/ext_transforms.py	/^    def __repr__(self):$/;"	m	class:ExtCompose	file:
+__repr__	utils/ext_transforms.py	/^    def __repr__(self):$/;"	m	class:ExtNormalize	file:
+__repr__	utils/ext_transforms.py	/^    def __repr__(self):$/;"	m	class:ExtRandomCrop	file:
+__repr__	utils/ext_transforms.py	/^    def __repr__(self):$/;"	m	class:ExtRandomHorizontalFlip	file:
+__repr__	utils/ext_transforms.py	/^    def __repr__(self):$/;"	m	class:ExtToTensor	file:
+__repr__	utils/ext_transforms.py	/^    def __repr__(self):$/;"	m	class:Lambda	file:
+_check_input	utils/ext_transforms.py	/^    def _check_input(self, value, name, center=1, bound=(0, float('inf')), clip_first_on_zero=True):$/;"	m	class:ExtColorJitter
+_convert_weights_to_fp16	network/backbone/resnet_clip.py	/^    def _convert_weights_to_fp16(l):$/;"	f	function:convert_weights
+_download	network/backbone/resnet_clip.py	/^def _download(url: str, root: str):$/;"	f
+_fast_hist	metrics/stream_metrics.py	/^    def _fast_hist(self, label_true, label_pred):$/;"	m	class:StreamSegMetrics
+_get_target_suffix	datasets/cityscapes.py	/^    def _get_target_suffix(self, mode, target_type):$/;"	m	class:Cityscapes
+_init_weight	network/_deeplab.py	/^    def _init_weight(self):$/;"	m	class:DeepLabHeadV3Plus
+_load_json	datasets/cityscapes.py	/^    def _load_json(self, path):$/;"	m	class:Cityscapes
+_make_layer	network/backbone/resnet_clip.py	/^    def _make_layer(self, planes, blocks, stride=1,dilate=False):$/;"	m	class:ModifiedResNet
+add_items	datasets/bdd100k.py	/^def add_items(items, img_path, mask_path, mask_postfix, mode):$/;"	f
+add_items	datasets/synthia.py	/^def add_items(items, img_path, mask_path, mask_postfix, mode):$/;"	f
+assureSingleInstanceName	datasets/cityscapes_labels.py	/^def assureSingleInstanceName( name ):$/;"	f
+bar_update	datasets/utils.py	/^    def bar_update(count, block_size, total_size):$/;"	f	function:gen_bar_updater
+build_model	network/backbone/resnet_clip.py	/^def build_model(state_dict: dict,replace_stride_with_dilation=[False,False,True]):$/;"	f
+calc_mean_std	utils/stats.py	/^def calc_mean_std(feat, eps=1e-5):$/;"	f
+category	datasets/cityscapes_labels.py	/^    category = id2label[id].category$/;"	v
+category	datasets/cityscapes_labels.py	/^    category = label.category$/;"	v
+category2labels	datasets/cityscapes_labels.py	/^category2labels = {}$/;"	v
+check_integrity	datasets/utils.py	/^def check_integrity(fpath, md5=None):$/;"	f
+classes	datasets/cityscapes.py	/^    classes = [$/;"	v	class:Cityscapes
+classes	datasets/gta5.py	/^    classes = [$/;"	v	class:GTA5DataSet
+classes	predict.py	/^classes = [$/;"	v
+color2trainId	datasets/cityscapes_labels.py	/^color2trainId = { label.color : label.trainId for label in labels   }$/;"	v
+compose_text_with_templates	patch_PIN.py	/^def compose_text_with_templates(text: str, templates) -> list:$/;"	f
+convert_weights	network/backbone/resnet_clip.py	/^def convert_weights(model: nn.Module):$/;"	f
+decode_target	datasets/cityscapes.py	/^    def decode_target(cls, target):$/;"	m	class:Cityscapes
+decode_target	datasets/gta5.py	/^    def decode_target(cls, target):$/;"	m	class:GTA5DataSet
+deeplabv3plus_resnet_clip	network/modeling.py	/^def deeplabv3plus_resnet_clip(num_classes=19,BB = "RN50",OS=16):$/;"	f
+divide_in_patches	utils/stats.py	/^def divide_in_patches(feat,n):$/;"	f
+download_url	datasets/utils.py	/^def download_url(url, root, filename=None, md5=None):$/;"	f
+dtype	network/backbone/resnet_clip.py	/^    def dtype(self):$/;"	m	class:CLIP_encoder
+encode_target	datasets/cityscapes.py	/^    def encode_target(cls, target):$/;"	m	class:Cityscapes
+encode_target	predict.py	/^def encode_target(target):$/;"	f
+expansion	network/backbone/resnet_clip.py	/^    expansion = 4$/;"	v	class:Bottleneck
+forward	network/_deeplab.py	/^    def forward(self, feature):$/;"	m	class:DeepLabHeadV3Plus
+forward	network/_deeplab.py	/^    def forward(self, x):$/;"	m	class:ASPP
+forward	network/_deeplab.py	/^    def forward(self, x):$/;"	m	class:ASPPPooling
+forward	network/backbone/resnet_clip.py	/^    def forward(self, input,trunc1,trunc2,trunc3,trunc4,get1,get2,get3,get4):$/;"	m	class:CLIP_encoder
+forward	network/backbone/resnet_clip.py	/^    def forward(self, x):$/;"	m	class:AttentionPool2d
+forward	network/backbone/resnet_clip.py	/^    def forward(self, x, trunc0= False, trunc1 = False, trunc2 = False, trunc3=False,trunc4=False, get0=False, get1=False, get2=False,get3=False, get4=False,get_z=False):$/;"	m	class:ModifiedResNet
+forward	network/backbone/resnet_clip.py	/^    def forward(self, x: torch.Tensor):$/;"	m	class:Bottleneck
+forward	network/utils.py	/^    def forward(self, x, transfer=False,mix=False,most_list=None,saved_params=None,activation=None,s=0):$/;"	m	class:_Segmentation
+forward	utils/PPIN.py	/^    def forward(self):$/;"	m	class:PPIN
+freeze_1	utils/freeze.py	/^def freeze_1(model):$/;"	f
+freeze_1_2	utils/freeze.py	/^def freeze_1_2(model):$/;"	f
+freeze_1_2_3	utils/freeze.py	/^def freeze_1_2_3(model):$/;"	f
+freeze_1_2_3_p4	utils/freeze.py	/^def freeze_1_2_3_p4(model):$/;"	f
+freeze_all	utils/freeze.py	/^def freeze_all(model):$/;"	f
+freeze_layer	utils/freeze.py	/^def freeze_layer(layer):$/;"	f
+gen_bar_updater	datasets/utils.py	/^def gen_bar_updater(pbar):$/;"	f
+gen_id_to_ignore	datasets/mapillary.py	/^def gen_id_to_ignore():$/;"	f
+get_argparser	main.py	/^def get_argparser():$/;"	f
+get_argparser	patch_PIN.py	/^def get_argparser():$/;"	f
+get_argparser	predict.py	/^def get_argparser():$/;"	f
+get_dataset	utils/get_dataset.py	/^def get_dataset(dataset,data_root,crop_size,ACDC_sub="night",data_aug=True):$/;"	f
+get_lr	utils/scheduler.py	/^    def get_lr(self):$/;"	m	class:PolyLR
+get_params	utils/ext_transforms.py	/^    def get_params(brightness, contrast, saturation, hue):$/;"	m	class:ExtColorJitter
+get_params	utils/ext_transforms.py	/^    def get_params(img, output_size):$/;"	m	class:ExtRandomCrop
+get_results	metrics/stream_metrics.py	/^    def get_results(self):$/;"	m	class:StreamSegMetrics
+get_results	metrics/stream_metrics.py	/^    def get_results(self):$/;"	m	class:_StreamMetrics
+get_results	metrics/stream_metrics.py	/^    def get_results(self, id):$/;"	m	class:AverageMeter
+id	datasets/cityscapes_labels.py	/^    id   = name2label[name].id$/;"	v
+id2label	datasets/cityscapes_labels.py	/^id2label        = { label.id      : label for label in labels           }$/;"	v
+id_to_ignore_or_group	datasets/mapillary.py	/^id_to_ignore_or_group = {}$/;"	v
+id_to_train_id	datasets/cityscapes.py	/^    id_to_train_id = np.array([c.train_id for c in classes])$/;"	v	class:Cityscapes
+id_to_train_id	predict.py	/^id_to_train_id = np.array([c.train_id for c in classes])$/;"	v
+ignore_label	datasets/mapillary.py	/^ignore_label = 255 #65$/;"	v
+ignore_label	datasets/synthia.py	/^ignore_label = 255$/;"	v
+imagenet_templates	patch_PIN.py	/^imagenet_templates = [$/;"	v
+img_postfix	datasets/bdd100k.py	/^img_postfix = '.jpg'$/;"	v
+img_postfix	datasets/synthia.py	/^img_postfix = '.png'$/;"	v
+initialize_parameters	network/backbone/resnet_clip.py	/^    def initialize_parameters(self):$/;"	m	class:CLIP_encoder
+label2trainid	datasets/cityscapes_labels.py	/^label2trainid   = { label.id      : label.trainId for label in labels   }$/;"	v
+labels	datasets/cityscapes_labels.py	/^labels = [$/;"	v
+list_dir	datasets/utils.py	/^def list_dir(root, prefix=False):$/;"	f
+list_files	datasets/utils.py	/^def list_files(root, suffix, prefix=False):$/;"	f
+main	main.py	/^def main():$/;"	f
+main	patch_PIN.py	/^def main(random_styles=random_styles):$/;"	f
+main	predict.py	/^def main():$/;"	f
+make_dataset	datasets/bdd100k.py	/^def make_dataset(root, mode):$/;"	f
+make_dataset	datasets/mapillary.py	/^def make_dataset(root, quality, mode):$/;"	f
+make_dataset	datasets/synthia.py	/^def make_dataset(root, mode):$/;"	f
+makedir_exist_ok	datasets/utils.py	/^def makedir_exist_ok(dirpath):$/;"	f
+mask_transform	predict.py	/^def mask_transform(mask):$/;"	f
+mkdir	utils/freeze.py	/^def mkdir(path):$/;"	f
+model_urls	network/backbone/resnet_clip.py	/^model_urls = {$/;"	v
+name	datasets/cityscapes.py	/^    def name(cls,target):$/;"	m	class:Cityscapes
+name	datasets/cityscapes_labels.py	/^    name = 'car'$/;"	v
+name	datasets/cityscapes_labels.py	/^    name = trainId2label[trainId].name$/;"	v
+name2label	datasets/cityscapes_labels.py	/^name2label      = { label.name    : label for label in labels           }$/;"	v
+num_classes	datasets/synthia.py	/^num_classes = 19$/;"	v
+random_styles	patch_PIN.py	/^random_styles = ['Ethereal Mist style',$/;"	v
+reset	metrics/stream_metrics.py	/^    def reset(self):$/;"	m	class:StreamSegMetrics
+reset	metrics/stream_metrics.py	/^    def reset(self):$/;"	m	class:_StreamMetrics
+reset	metrics/stream_metrics.py	/^    def reset(self, id):$/;"	m	class:AverageMeter
+reset_all	metrics/stream_metrics.py	/^    def reset_all(self):$/;"	m	class:AverageMeter
+save_ckpt	main.py	/^    def save_ckpt(path,model,optimizer,scheduler,best_score):$/;"	f	function:main
+stem	network/backbone/resnet_clip.py	/^        def stem(x):$/;"	f	function:ModifiedResNet.forward
+to_remove	network/backbone/resnet_clip.py	/^to_remove = [ "positional_embedding","text_projection", "logit_scale", "input_resolution", "context_length", "vocab_size", "transformer.resblocks.0.attn.in_proj_weight", "transformer.resblocks.0.attn.in_proj_bias", "transformer.resblocks.0.attn.out_proj.weight", "transformer.resblocks.0.attn.out_proj.bias", "transformer.resblocks.0.ln_1.weight", "transformer.resblocks.0.ln_1.bias", "transformer.resblocks.0.mlp.c_fc.weight", "transformer.resblocks.0.mlp.c_fc.bias", "transformer.resblocks.0.mlp.c_proj.weight", "transformer.resblocks.0.mlp.c_proj.bias", "transformer.resblocks.0.ln_2.weight", "transformer.resblocks.0.ln_2.bias", "transformer.resblocks.1.attn.in_proj_weight", "transformer.resblocks.1.attn.in_proj_bias", "transformer.resblocks.1.attn.out_proj.weight", "transformer.resblocks.1.attn.out_proj.bias", "transformer.resblocks.1.ln_1.weight", "transformer.resblocks.1.ln_1.bias", "transformer.resblocks.1.mlp.c_fc.weight", "transformer.resblocks.1.mlp.c_fc.bias", "transformer.resblocks.1.mlp.c_proj.weight", "transformer.resblocks.1.mlp.c_proj.bias", "transformer.resblocks.1.ln_2.weight", "transformer.resblocks.1.ln_2.bias", "transformer.resblocks.2.attn.in_proj_weight", "transformer.resblocks.2.attn.in_proj_bias", "transformer.resblocks.2.attn.out_proj.weight", "transformer.resblocks.2.attn.out_proj.bias", "transformer.resblocks.2.ln_1.weight", "transformer.resblocks.2.ln_1.bias", "transformer.resblocks.2.mlp.c_fc.weight", "transformer.resblocks.2.mlp.c_fc.bias", "transformer.resblocks.2.mlp.c_proj.weight", "transformer.resblocks.2.mlp.c_proj.bias", "transformer.resblocks.2.ln_2.weight", "transformer.resblocks.2.ln_2.bias", "transformer.resblocks.3.attn.in_proj_weight", "transformer.resblocks.3.attn.in_proj_bias", "transformer.resblocks.3.attn.out_proj.weight", "transformer.resblocks.3.attn.out_proj.bias", "transformer.resblocks.3.ln_1.weight", "transformer.resblocks.3.ln_1.bias", "transformer.resblocks.3.mlp.c_fc.weight", "transformer.resblocks.3.mlp.c_fc.bias", "transformer.resblocks.3.mlp.c_proj.weight", "transformer.resblocks.3.mlp.c_proj.bias", "transformer.resblocks.3.ln_2.weight", "transformer.resblocks.3.ln_2.bias", "transformer.resblocks.4.attn.in_proj_weight", "transformer.resblocks.4.attn.in_proj_bias", "transformer.resblocks.4.attn.out_proj.weight", "transformer.resblocks.4.attn.out_proj.bias", "transformer.resblocks.4.ln_1.weight", "transformer.resblocks.4.ln_1.bias", "transformer.resblocks.4.mlp.c_fc.weight", "transformer.resblocks.4.mlp.c_fc.bias", "transformer.resblocks.4.mlp.c_proj.weight", "transformer.resblocks.4.mlp.c_proj.bias", "transformer.resblocks.4.ln_2.weight", "transformer.resblocks.4.ln_2.bias", "transformer.resblocks.5.attn.in_proj_weight", "transformer.resblocks.5.attn.in_proj_bias", "transformer.resblocks.5.attn.out_proj.weight", "transformer.resblocks.5.attn.out_proj.bias", "transformer.resblocks.5.ln_1.weight", "transformer.resblocks.5.ln_1.bias", "transformer.resblocks.5.mlp.c_fc.weight", "transformer.resblocks.5.mlp.c_fc.bias", "transformer.resblocks.5.mlp.c_proj.weight", "transformer.resblocks.5.mlp.c_proj.bias", "transformer.resblocks.5.ln_2.weight", "transformer.resblocks.5.ln_2.bias", "transformer.resblocks.6.attn.in_proj_weight", "transformer.resblocks.6.attn.in_proj_bias", "transformer.resblocks.6.attn.out_proj.weight", "transformer.resblocks.6.attn.out_proj.bias", "transformer.resblocks.6.ln_1.weight", "transformer.resblocks.6.ln_1.bias", "transformer.resblocks.6.mlp.c_fc.weight", "transformer.resblocks.6.mlp.c_fc.bias", "transformer.resblocks.6.mlp.c_proj.weight", "transformer.resblocks.6.mlp.c_proj.bias", "transformer.resblocks.6.ln_2.weight", "transformer.resblocks.6.ln_2.bias", "transformer.resblocks.7.attn.in_proj_weight", "transformer.resblocks.7.attn.in_proj_bias", "transformer.resblocks.7.attn.out_proj.weight", "transformer.resblocks.7.attn.out_proj.bias", "transformer.resblocks.7.ln_1.weight", "transformer.resblocks.7.ln_1.bias", "transformer.resblocks.7.mlp.c_fc.weight", "transformer.resblocks.7.mlp.c_fc.bias", "transformer.resblocks.7.mlp.c_proj.weight", "transformer.resblocks.7.mlp.c_proj.bias", "transformer.resblocks.7.ln_2.weight", "transformer.resblocks.7.ln_2.bias", "transformer.resblocks.8.attn.in_proj_weight", "transformer.resblocks.8.attn.in_proj_bias", "transformer.resblocks.8.attn.out_proj.weight", "transformer.resblocks.8.attn.out_proj.bias", "transformer.resblocks.8.ln_1.weight", "transformer.resblocks.8.ln_1.bias", "transformer.resblocks.8.mlp.c_fc.weight", "transformer.resblocks.8.mlp.c_fc.bias", "transformer.resblocks.8.mlp.c_proj.weight", "transformer.resblocks.8.mlp.c_proj.bias", "transformer.resblocks.8.ln_2.weight", "transformer.resblocks.8.ln_2.bias", "transformer.resblocks.9.attn.in_proj_weight", "transformer.resblocks.9.attn.in_proj_bias", "transformer.resblocks.9.attn.out_proj.weight", "transformer.resblocks.9.attn.out_proj.bias", "transformer.resblocks.9.ln_1.weight", "transformer.resblocks.9.ln_1.bias", "transformer.resblocks.9.mlp.c_fc.weight", "transformer.resblocks.9.mlp.c_fc.bias", "transformer.resblocks.9.mlp.c_proj.weight", "transformer.resblocks.9.mlp.c_proj.bias", "transformer.resblocks.9.ln_2.weight", "transformer.resblocks.9.ln_2.bias", "transformer.resblocks.10.attn.in_proj_weight", "transformer.resblocks.10.attn.in_proj_bias", "transformer.resblocks.10.attn.out_proj.weight", "transformer.resblocks.10.attn.out_proj.bias", "transformer.resblocks.10.ln_1.weight", "transformer.resblocks.10.ln_1.bias", "transformer.resblocks.10.mlp.c_fc.weight", "transformer.resblocks.10.mlp.c_fc.bias", "transformer.resblocks.10.mlp.c_proj.weight", "transformer.resblocks.10.mlp.c_proj.bias", "transformer.resblocks.10.ln_2.weight", "transformer.resblocks.10.ln_2.bias", "transformer.resblocks.11.attn.in_proj_weight", "transformer.resblocks.11.attn.in_proj_bias", "transformer.resblocks.11.attn.out_proj.weight", "transformer.resblocks.11.attn.out_proj.bias", "transformer.resblocks.11.ln_1.weight", "transformer.resblocks.11.ln_1.bias", "transformer.resblocks.11.mlp.c_fc.weight", "transformer.resblocks.11.mlp.c_fc.bias", "transformer.resblocks.11.mlp.c_proj.weight", "transformer.resblocks.11.mlp.c_proj.bias", "transformer.resblocks.11.ln_2.weight", "transformer.resblocks.11.ln_2.bias", "token_embedding.weight", "ln_final.weight", "ln_final.bias"]$/;"	v
+to_str	metrics/stream_metrics.py	/^    def to_str(results):$/;"	m	class:StreamSegMetrics
+to_str	metrics/stream_metrics.py	/^    def to_str(self, metrics):$/;"	m	class:_StreamMetrics
+trainId	datasets/cityscapes_labels.py	/^    trainId = 0$/;"	v
+trainId2color	datasets/cityscapes_labels.py	/^trainId2color  = { label.trainId : label.color for label in labels  }$/;"	v
+trainId2label	datasets/cityscapes_labels.py	/^trainId2label   = { label.trainId : label for label in reversed(labels) }$/;"	v
+trainId2name	datasets/cityscapes_labels.py	/^trainId2name   = { label.trainId : label.name for label in labels   }$/;"	v
+trainId2trainId	datasets/cityscapes_labels.py	/^trainId2trainId = { label.trainId : label.trainId for label in labels   }$/;"	v
+train_id_to_color	datasets/cityscapes.py	/^    train_id_to_color = [c.color for c in classes if (c.train_id != -1 and c.train_id != 255)]$/;"	v	class:Cityscapes
+train_id_to_color	datasets/cityscapes.py	/^    train_id_to_color = np.array(train_id_to_color)$/;"	v	class:Cityscapes
+train_id_to_color	datasets/gta5.py	/^    train_id_to_color = [c.color for c in classes if (c.train_id != -1 and c.train_id != 255)]$/;"	v	class:GTA5DataSet
+train_id_to_color	datasets/gta5.py	/^    train_id_to_color = np.array(train_id_to_color)$/;"	v	class:GTA5DataSet
+train_id_to_name	datasets/cityscapes.py	/^    train_id_to_name = np.array(train_id_to_name)$/;"	v	class:Cityscapes
+trainid_to_trainid	datasets/bdd100k.py	/^trainid_to_trainid = cityscapes_labels.trainId2trainId$/;"	v
+trainid_to_trainid	datasets/synthia.py	/^trainid_to_trainid = {$/;"	v
+update	metrics/stream_metrics.py	/^    def update(self, gt, pred):$/;"	m	class:_StreamMetrics
+update	metrics/stream_metrics.py	/^    def update(self, id, val):$/;"	m	class:AverageMeter
+update	metrics/stream_metrics.py	/^    def update(self, label_trues, label_preds):$/;"	m	class:StreamSegMetrics
+validate	main.py	/^def validate(model, loader, device, metrics):$/;"	f
+writer	main.py	/^writer = SummaryWriter()$/;"	v
