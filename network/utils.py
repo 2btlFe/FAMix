@@ -4,7 +4,7 @@ import torch.nn.functional as F
 from utils.stats import *
 import random
 from torch.nn.functional import unfold
-
+import ipdb
 
 
 class _Segmentation(nn.Module):
@@ -13,7 +13,9 @@ class _Segmentation(nn.Module):
         self.backbone = backbone
         self.classifier = classifier
       
-    def forward(self, x, transfer=False,mix=False,most_list=None,saved_params=None,activation=None,s=0):
+    def forward(self, x, transfer=False,mix=False,most_list=None,saved_params=None,activation=None,s=0, div=3):
+        
+        # ipdb.set_trace()
         input_shape = x.shape[-2:]
         features = {}
         features['low_level'] = self.backbone(x,trunc1=False,trunc2=False,
@@ -30,24 +32,26 @@ class _Segmentation(nn.Module):
             h=0
             w=0
 
-            self.patches = unfold(features['low_level'], kernel_size=64, stride=64).permute(-1,0,1)
-            self.patches = self.patches.reshape(self.patches.shape[0],self.patches.shape[1],256,d2//3,d3//3)
+            new_kernel_size = d2//div
+
+            self.patches = unfold(features['low_level'], kernel_size=new_kernel_size, stride=new_kernel_size).permute(-1,0,1)
+            self.patches = self.patches.reshape(self.patches.shape[0],self.patches.shape[1],256,d2//div,d3//div)
 
             means_orig = torch.zeros([8,256,d2,d3])
             stds_orig = torch.zeros([8,256,d2,d3])
 
-            for i in range(3*3):
+            for i in range(div*div):
                 mean , std = calc_mean_std(self.patches[i])
             
-                means_orig[:,:,h:h+d2//3,w:w+d3//3] = mean.expand((8,256,d2//3,d3//3))
-                stds_orig[:,:,h:h+d2//3,w:w+d3//3] =std.expand((8,256,d2//3,d3//3))
-                w+=d2//3
-                if (i+1)%3 == 0 :
+                means_orig[:,:,h:h+d2//div,w:w+d3//div] = mean.expand((8,256,d2//div,d3//div))
+                stds_orig[:,:,h:h+d2//div,w:w+d3//div] =std.expand((8,256,d2//div,d3//div))
+                w+=d2//div
+                if (i+1)%div == 0 :
                     w=0
-                    h+=d3//3
+                    h+=d3//div
 
                 self.patches[i] = (self.patches[i] - mean.expand(self.patches[i].size()) ) / std.expand(self.patches[i].size())
-            features_low_norm = torch.cat([torch.cat([self.patches[3*i+j] for i in range(3)],dim=2) for j in range(3)],dim=3)
+            features_low_norm = torch.cat([torch.cat([self.patches[div*i+j] for i in range(div)],dim=2) for j in range(div)],dim=3)
             
             h=0
             w=0
@@ -65,12 +69,12 @@ class _Segmentation(nn.Module):
                         mu_t = saved_params[str(el)+'_mu'][idx]
                         std_t = saved_params[str(el)+'_std'][idx]
 
-                    mu_t_f1[k,:,h:h+features['low_level'].shape[2]//3,w:w+features['low_level'].shape[3]//3]  = mu_t.expand((256,d2//3,d3//3))
-                    std_t_f1[k,:,h:h+d2//3,w:w+d3//3] = std_t.expand((256,d2//3,d3//3))
-                w+=d2//3
-                if (j+1)%3==0:
+                    mu_t_f1[k,:,h:h+features['low_level'].shape[2]//div,w:w+features['low_level'].shape[3]//div]  = mu_t.expand((256,d2//div,d3//div))
+                    std_t_f1[k,:,h:h+d2//div,w:w+d3//div] = std_t.expand((256,d2//div,d3//div))
+                w+=d2//div
+                if (j+1)%div==0:
                     w=0
-                    h+=d3//3
+                    h+=d3//div
             if not mix:
                 features['low_level'] = (std_t_f1.to('cuda') * features_low_norm + mu_t_f1.to('cuda'))
             else:

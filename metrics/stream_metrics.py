@@ -1,10 +1,7 @@
 import numpy as np
 from sklearn.metrics import confusion_matrix
 import ipdb
-<<<<<<< HEAD
-=======
 import matplotlib.pyplot as plt
->>>>>>> 2e949b94dcb63ab81414874e7e946d7c25a03f47
 
 class _StreamMetrics(object):
     def __init__(self):

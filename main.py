@@ -258,7 +258,7 @@ def main():
             beta_dist = torch.distributions.beta.Beta(0.1, 0.1)
             s = beta_dist.sample((opts.batch_size, 256, 1, 1)).to('cuda')
 
-            outputs,features = model(images, transfer=opts.transfer,mix=True,most_list=most_list,saved_params=loaded_dict_patches,activation=relu,s=s)
+            outputs,features = model(images, transfer=opts.transfer,mix=True,most_list=most_list,saved_params=loaded_dict_patches,activation=relu,s=s, div=opts.div)
         
             ##############################################################################################################################################
             labels = labels.to(device, dtype=torch.long)
@@ -288,7 +288,7 @@ def main():
                 
                 model.eval()
 
-                val_score = validate(model=model, loader=val_loader,device=device, metrics=metrics)
+                val_score = validate(model=model, loader=val_loader,device=device, metrics=metrics, dataset=opts.dataset)
                 
                 print(metrics.to_str(val_score))
             

@@ -75,12 +75,15 @@ def get_argparser():
     parser.add_argument("--crop_val", action='store_true', default=False,
                         help='crop validation (default: False)')
     parser.add_argument("--crop_size", type=int, default=513)
-
     
     parser.add_argument("--ckpt", default=None, type=str,
                         help="resume from checkpoint")
     parser.add_argument("--gpu_id", type=str, default='0',
                         help="GPU ID")
+    parser.add_argument("--dataset_root", type=str, default='cityscapes', help='dataset name (default: cityscapes)')
+    
+
+
     return parser
 
 def mask_transform(mask):
@@ -123,7 +126,7 @@ def main():
         transform = T.Compose([
                 T.ToTensor(),
                 T.Normalize(mean=[0.48145466, 0.4578275, 0.40821073],
-                        std=[0.26862954, 0.26130258, 0.27577711]),
+                        std=[1.26862954, 0.26130258, 0.27577711]),
             ])
     if opts.save_val_results_to is not None:
         os.makedirs(opts.save_val_results_to, exist_ok=True)
@@ -135,16 +138,15 @@ def main():
             ])
 
     img_list = []
-    path = 'predict_test/'
+    path = opts.dataset_root
     model = model.eval()
-    for filename in os.listdir(path):
-        f = os.path.join(path, filename)
-        # checking if it is a file
-        if os.path.isfile(f):
-            img_list.append(f) 
-
-    with torch.no_grad():    
-        
+    
+    for root, dir, files in os.walk(path):
+        for file in files:
+            if file.endswith('.png') or file.endswith('.jpg') or file.endswith('.jpeg'):
+                img_list.append(os.path.join(root, file))
+    
+    with torch.no_grad():        
         for i in range(len(img_list)):
             print(i)
            
