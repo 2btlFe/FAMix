@@ -72,9 +72,14 @@ def get_argparser():
                         help="number of classes to be considered for segmentation")
     parser.add_argument("--path_for_stats",type=str, help="path for the optimized stats")
     
+    parser.add_argument("--path_for_3stats", type=str, help="path for the optimized 3 stats")
+    parser.add_argument("--path_for_4stats", type=str, help="path for the optimized 4 stats")
+    parser.add_argument("--path_for_6stats", type=str, help="path for the optimized 6 stats")
+
     parser.add_argument("--transfer", action='store_true',default=True)
     parser.add_argument("--div", type=int, default=3, help="number of divisions for the image")
     parser.add_argument("--work_dir", type=str, default='model_ckpt', help="path to save model")
+    parser.add_argument("--patch_method", type=str, default="default")
     return parser
 
 def validate(model, loader, device, metrics, dataset):
@@ -217,10 +222,23 @@ def main():
 
     interval_loss = 0
 
-    if not opts.test_only: 
-        with open(opts.path_for_stats, 'rb') as f:
+    # load various patch_stats 
 
-            loaded_dict_patches = pickle.load(f)
+    if not opts.test_only: 
+        
+        if opts.patch_method != "default":
+            
+            loaded_dict_patches_list = []
+
+            with open(opts.path_for_3stats, 'rb') as f:
+                loaded_dict_patches_list.append(pickle.load(f))
+            with open(opts.path_for_4stats, 'rb') as f:
+                loaded_dict_patches_list.append(pickle.load(f))
+            with open(opts.path_for_6stats, 'rb') as f:
+                loaded_dict_patches_list.append(pickle.load(f))
+        else:
+            with open(opts.path_for_stats, 'rb') as f:
+                loaded_dict_patches = pickle.load(f)
 
         relu = nn.ReLU(inplace=True)
 
@@ -243,6 +261,13 @@ def main():
             f.write(f'{val_score["Class IoU"]}\n') 
         return
 
+    # initial div
+    div = opts.div
+    div_list = [3, 4, 6]
+
+    # previous performance
+    # if opts.patch_method == "ranking":
+    #     previous_cls_iou = [0] * opts.num_classes
 
     while True:  # cur_itrs < opts.total_itrs:
     # =====  Train  =====
@@ -256,6 +281,51 @@ def main():
 
         cur_epochs += 1
 
+        # Division
+        if opts.patch_method == "division":
+            if cur_epochs < 7:
+                div = 3
+                loaded_dict_patches = loaded_dict_patches_list[0]
+            elif cur_epochs < 14:
+                div = 4
+                loaded_dict_patches = loaded_dict_patches_list[1]
+            else:
+                div = 6
+                loaded_dict_patches = loaded_dict_patches_list[2]
+        
+        # Rever Division
+        elif opts.patch_method == "reverse_division":
+            if cur_epochs < 7:
+                div = 6
+                loaded_dict_patches = loaded_dict_patches_list[2]
+            elif cur_epochs < 14:
+                div = 4
+                loaded_dict_patches = loaded_dict_patches_list[1]
+            else:
+                div = 3
+                loaded_dict_patches = loaded_dict_patches_list[0]
+
+        # Random
+        elif opts.patch_method == "random":
+            idx = random.randint(0,2)
+            loaded_dict_patches = loaded_dict_patches_list[idx]
+            div = div_list[idx]
+
+        # Alternate
+        elif opts.patch_method == "alternate":
+            if cur_epochs % 3 == 0:
+                div = 3
+                loaded_dict_patches = loaded_dict_patches_list[0]
+            elif cur_epochs % 3 == 1:
+                div = 4
+                loaded_dict_patches = loaded_dict_patches_list[1]
+            else:
+                div = 6
+                loaded_dict_patches = loaded_dict_patches_list[2]
+
+        # # ranking
+        # elif opts.patch_method == "ranking":
+            
         for i, (images, labels) in tqdm(enumerate(train_loader), desc="Training", unit="batch", unit_scale=True):
             
             cur_itrs += 1
@@ -268,7 +338,7 @@ def main():
             # lbl_patches = divide_in_patches(labels_,3)
 
             side = labels.size()[2]
-            new_side = int(side // opts.div)
+            new_side = int(side // div)
 
             lbl_patches = unfold(labels_, kernel_size=new_side, stride=new_side).permute(-1,0,1)
             lbl_patches = lbl_patches.reshape(lbl_patches.shape[0],lbl_patches.shape[1],1,new_side,new_side) #### (div*div, B, 1, H/div, W/div)
@@ -279,13 +349,11 @@ def main():
                 most = [Cityscapes.name(torch.mode(torch.flatten(lbl_patches[j][k])).values) if torch.mode(torch.flatten(lbl_patches[j][k])).values != 255 else 255 for k in range(lbl_patches[0].shape[0])]
                 most_list.append(most) #len=div*div , each element list of B elements
             
-
             # Mix proportion for the mixup
             beta_dist = torch.distributions.beta.Beta(0.1, 0.1)
             s = beta_dist.sample((opts.batch_size, 256, 1, 1)).to('cuda')
             
-
-            outputs,features = model(images, transfer=opts.transfer,mix=True,most_list=most_list,saved_params=loaded_dict_patches,activation=relu,s=s, div=opts.div)
+            outputs,features = model(images, transfer=opts.transfer,mix=True,most_list=most_list,saved_params=loaded_dict_patches,activation=relu,s=s, div=div)
         
             ##############################################################################################################################################
             labels = labels.to(device, dtype=torch.long)
@@ -293,7 +361,6 @@ def main():
             loss.backward()
             optimizer.step()
           
-
             writer.add_scalar("loss",loss,cur_itrs)
 
             np_loss = loss.detach().cpu().numpy()
@@ -319,7 +386,6 @@ def main():
                 
                 logger.info(metrics.to_str(val_score))
                 
-                
                 if val_score['Mean IoU'] > best_score:  # save best model
                     best_score = val_score['Mean IoU']
                     save_ckpt(opts.ckpts_path+'/best_%s_%s.pth' %
@@ -334,7 +400,6 @@ def main():
                     model.backbone.layer4.train()
         
                 model.classifier.train()
-
 
             scheduler.step()
 
