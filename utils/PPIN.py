@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 from torch.nn.functional import unfold
 from utils.stats import calc_mean_std
+import ipdb
 
 class PPIN(nn.Module):
     def __init__(self,content_feat,div=3,ind=[]):
@@ -12,7 +13,10 @@ class PPIN(nn.Module):
         self.B = self.content_feat.shape[0]
         self.C = self.content_feat.shape[1]
 
-        self.patches = unfold(self.content_feat, kernel_size=64, stride=64).permute(-1,0,1).reshape(-1,256,64,64)
+        side = self.content_feat.size()[2]
+        new_side = int(side // self.div)
+        
+        self.patches = unfold(self.content_feat, kernel_size=new_side, stride=new_side).permute(-1,0,1).reshape(-1,256,new_side,new_side)
         self.patches = self.patches[ind] #(len(ind),C,H/div,W/div)
         
         self.style_mean = torch.zeros(len(ind),self.C,1,1) #(len(ind),C,1,1)

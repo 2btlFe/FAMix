@@ -53,6 +53,8 @@ class GTA5DataSet(data.Dataset):
     train_id_to_color = np.array(train_id_to_color)
 
     def __init__(self, root, list_path, ignore_label=255,transform=None, isTrain=True):
+        # ipdb.set_trace()
+        
         self.root = root
         self.list_path = list_path
         self.ignore_label = ignore_label

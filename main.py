@@ -16,6 +16,9 @@ from utils.get_dataset import get_dataset
 from utils.freeze import * 
 from torch.nn.functional import unfold
 import ipdb
+import logging
+
+
 
 from torch.utils.tensorboard import SummaryWriter
 writer = SummaryWriter()
@@ -71,6 +74,7 @@ def get_argparser():
     
     parser.add_argument("--transfer", action='store_true',default=True)
     parser.add_argument("--div", type=int, default=3, help="number of divisions for the image")
+    parser.add_argument("--work_dir", type=str, default='model_ckpt', help="path to save model")
     return parser
 
 def validate(model, loader, device, metrics, dataset):
@@ -96,10 +100,28 @@ def validate(model, loader, device, metrics, dataset):
 
 def main():
     opts = get_argparser().parse_args()
-    
+    # 240613_adjust_logger
+
+   # StreamHandler 설정 (콘솔에 로그 출력)
+    stream_handler = logging.StreamHandler()
+    stream_handler.setLevel(logging.DEBUG)  # 로그 레벨 설정
+    stream_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+
+    # FileHandler 설정 (파일에 로그 기록)
+    os.makedirs(opts.work_dir, exist_ok=True)
+    file_handler = logging.FileHandler(f'{opts.work_dir}/train.log')
+    file_handler.setLevel(logging.DEBUG)  # 로그 레벨 설정
+    file_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+
+    # 로거 설정
+    logger = logging.getLogger('FAMix')
+    logger.setLevel(logging.DEBUG)  # 로거의 기본 로그 레벨 설정
+    logger.addHandler(stream_handler)
+    logger.addHandler(file_handler)
+
     os.environ['CUDA_VISIBLE_DEVICES'] = opts.gpu_id
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    print("Device: %s" % device)
+    logger.info("Device: %s" % device)
 
     # Setup random seed
     # INIT
@@ -120,8 +142,8 @@ def main():
 
     val_loader = data.DataLoader(
         val_dst, batch_size=opts.val_batch_size, shuffle=True, num_workers=4)
-    
-    print("Dataset: %s, Train set: %d, Val set: %d" %
+ 
+    logger.info("Dataset: %s, Train set: %d, Val set: %d" %
     (opts.dataset, len(train_dst), len(val_dst)))
 
 
@@ -159,7 +181,7 @@ def main():
             "scheduler_state": scheduler.state_dict(),
             "best_score": best_score,
         }, path)
-        print("Model saved as %s" % path)
+        logger.info("Model saved as %s" % path)
     
     if not opts.test_only:
         utils.mkdir(opts.ckpts_path)
@@ -180,12 +202,12 @@ def main():
             scheduler.load_state_dict(checkpoint["scheduler_state"])
             cur_itrs = checkpoint["cur_itrs"]
             best_score = checkpoint['best_score']
-            print("Training state restored from %s" % opts.ckpt)
-        print("Model restored from %s" %opts.ckpt)
+            logger.info("Training state restored from %s" % opts.ckpt)
+        logger.info("Model restored from %s" %opts.ckpt)
         del checkpoint  # free memory
         
     else:
-        print("[!] Retrain")
+        logger.info("[!] Retrain")
         model.to(device)
         
     # ==========   Train Loop   ==========#
@@ -209,9 +231,12 @@ def main():
 
         val_score = validate(model=model, loader=val_loader, device=device, metrics=metrics, dataset=opts.dataset)
 
-        print(metrics.to_str(val_score))
-        print(val_score["Mean IoU"])
-        print(val_score["Class IoU"])
+        logger.info(metrics.to_str(val_score))
+        logger.info(val_score["Mean IoU"])
+        logger.info(val_score["Class IoU"])
+        
+        save_txt = f"{opts.work_dir}_logs_PODA_val_gta5_{opts.dataset}.txt"
+
         save_txt = f"logs_PODA_val_gta5_{opts.dataset}.txt"
         with open(save_txt, 'a') as f:
             f.write(f'{val_score["Mean IoU"]}\n')
@@ -230,7 +255,7 @@ def main():
         model.classifier.train()
 
         cur_epochs += 1
-       
+
         for i, (images, labels) in tqdm(enumerate(train_loader), desc="Training", unit="batch", unit_scale=True):
             
             cur_itrs += 1
@@ -255,8 +280,10 @@ def main():
                 most_list.append(most) #len=div*div , each element list of B elements
             
 
+            # Mix proportion for the mixup
             beta_dist = torch.distributions.beta.Beta(0.1, 0.1)
             s = beta_dist.sample((opts.batch_size, 256, 1, 1)).to('cuda')
+            
 
             outputs,features = model(images, transfer=opts.transfer,mix=True,most_list=most_list,saved_params=loaded_dict_patches,activation=relu,s=s, div=opts.div)
         
@@ -274,7 +301,7 @@ def main():
 
             if (cur_itrs) % 10 == 0:
                 interval_loss = interval_loss / 10
-                print("Epoch %d, Itrs %d/%d, Loss_clip=%f" %
+                logger.info("Epoch %d, Itrs %d/%d, Loss_clip=%f" %
                     (cur_epochs, cur_itrs, opts.total_itrs, interval_loss))
                 interval_loss = 0.0
 
@@ -284,14 +311,14 @@ def main():
                 save_ckpt(opts.ckpts_path+'/latest_%s_%s_'%
                         ('deeplabv3plus_resnet_clip', opts.dataset)+str(cur_itrs)+'.pth' ,model,optimizer,scheduler,best_score)
                
-                print("validation...")
+                logger.info("validation...")
                 
                 model.eval()
 
                 val_score = validate(model=model, loader=val_loader,device=device, metrics=metrics, dataset=opts.dataset)
                 
-                print(metrics.to_str(val_score))
-            
+                logger.info(metrics.to_str(val_score))
+                
                 
                 if val_score['Mean IoU'] > best_score:  # save best model
                     best_score = val_score['Mean IoU']
