@@ -21,7 +21,7 @@ import logging
 
 
 from torch.utils.tensorboard import SummaryWriter
-writer = SummaryWriter()
+
 
 def get_argparser():
     parser = argparse.ArgumentParser()
@@ -128,6 +128,8 @@ def main():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     logger.info("Device: %s" % device)
 
+    
+
     # Setup random seed
     # INIT
     torch.manual_seed(opts.random_seed) # set to 1 
@@ -226,6 +228,10 @@ def main():
 
     if not opts.test_only: 
         
+        # Tensorboard 설정
+        log_dir = f"{opts.work_dir}/training_logs"
+        writer = SummaryWriter(log_dir=log_dir)
+
         if opts.patch_method != "default":
             
             loaded_dict_patches_list = []
@@ -243,8 +249,12 @@ def main():
         relu = nn.ReLU(inplace=True)
 
 
-    if opts.test_only:
-       
+    if opts.test_only:        
+        # Tensorboard 설정
+        log_dir = f"{opts.work_dir}/test_logs"
+        os.makedirs(log_dir, exist_ok=True)
+        writer = SummaryWriter(log_dir=log_dir)
+
         model.eval()
 
         val_score = validate(model=model, loader=val_loader, device=device, metrics=metrics, dataset=opts.dataset)
@@ -253,6 +263,20 @@ def main():
         logger.info(val_score["Mean IoU"])
         logger.info(val_score["Class IoU"])
         
+        # tensorboard - class IoU
+        class_names = [
+            'road', 'sidewalk', 'building', 'wall', 'fence', 'pole',
+            'traffic light', 'traffic sign', 'vegetation', 'terrain', 'sky',
+            'person', 'rider', 'car', 'truck', 'bus', 'train', 'motorcycle',
+            'bicycle'
+        ]
+
+        
+        iou_dict = {class_name: val_score["Class IoU"][i] for i, class_name in enumerate(class_names)} 
+        writer.add_scalar("mIoU", val_score['Mean IoU'] ,cur_itrs)
+        writer.add_scalars("IoU_per_class", iou_dict, cur_itrs)
+        
+
         save_txt = f"{opts.work_dir}_logs_PODA_val_gta5_{opts.dataset}.txt"
 
         save_txt = f"logs_PODA_val_gta5_{opts.dataset}.txt"
