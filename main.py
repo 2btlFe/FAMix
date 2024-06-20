@@ -152,9 +152,13 @@ def main():
     logger.info("Dataset: %s, Train set: %d, Val set: %d" %
     (opts.dataset, len(train_dst), len(val_dst)))
 
-
     # Set up model
-    model = network.modeling.__dict__['deeplabv3plus_resnet_clip'](num_classes=opts.num_classes, BB= opts.BB, OS=opts.OS)
+    if opts.patch_method == "fusion":
+        fusion = True
+    else:
+        fusion = False
+
+    model = network.modeling.__dict__['deeplabv3plus_resnet_clip'](num_classes=opts.num_classes, BB= opts.BB, OS=opts.OS, fusion=fusion)
     model.backbone.attnpool = nn.Identity()
 
     # freeze layers
@@ -167,10 +171,17 @@ def main():
     metrics = StreamSegMetrics(opts.num_classes)
     
     # Set up optimizers
-    optimizer = torch.optim.SGD(params=[
-        {'params': model.backbone.parameters(), 'lr': 0.1 * opts.lr},
-        {'params': model.classifier.parameters(), 'lr': opts.lr},
-        ], lr=opts.lr, momentum=0.9, weight_decay=opts.weight_decay)
+    if opts.patch_method == "fusion":
+        optimizer = torch.optim.SGD(params=[
+            {'params': model.backbone.parameters(), 'lr': 0.1 * opts.lr},
+            {'params': model.classifier.parameters(), 'lr': opts.lr},
+            {'params': model.linear_fusion.parameters(), 'lr': opts.lr},
+            ], lr=opts.lr, momentum=0.9, weight_decay=opts.weight_decay)
+    else:        
+        optimizer = torch.optim.SGD(params=[
+            {'params': model.backbone.parameters(), 'lr': 0.1 * opts.lr},
+            {'params': model.classifier.parameters(), 'lr': opts.lr},
+            ], lr=opts.lr, momentum=0.9, weight_decay=opts.weight_decay)
 
     scheduler = utils.PolyLR(optimizer, opts.total_itrs, power=0.9)
 
@@ -236,7 +247,8 @@ def main():
             loaded_dict_patches_list = []
 
             with open(opts.path_for_3stats, 'rb') as f:
-                loaded_dict_patches_list.append(pickle.load(f))
+                loaded_dict_patches = pickle.load(f)
+                loaded_dict_patches_list.append(loaded_dict_patches)
             with open(opts.path_for_4stats, 'rb') as f:
                 loaded_dict_patches_list.append(pickle.load(f))
             with open(opts.path_for_6stats, 'rb') as f:
@@ -383,12 +395,17 @@ def main():
             beta_dist = torch.distributions.beta.Beta(0.1, 0.1)
             s = beta_dist.sample((opts.batch_size, 256, 1, 1)).to('cuda')
             
-            outputs,features = model(images, transfer=opts.transfer,mix=True,most_list=most_list,saved_params=loaded_dict_patches,activation=relu,s=s, div=div)
-        
+            outputs,features = model(images, transfer=opts.transfer,mix=True,most_list=most_list,saved_params=loaded_dict_patches, saved_params_4=loaded_dict_patches_list[1], saved_params_6=loaded_dict_patches_list[2], activation=relu,s=s, div=div, fusion=fusion)
+
+            # ipdb.set_trace()
+
             ##############################################################################################################################################
             labels = labels.to(device, dtype=torch.long)
             loss = criterion(outputs, labels)
             loss.backward()
+            
+            # ipdb.set_trace()
+            
             optimizer.step()
           
             writer.add_scalar("loss",loss,cur_itrs)

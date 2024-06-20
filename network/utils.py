@@ -7,15 +7,38 @@ from torch.nn.functional import unfold
 import ipdb
 import queue
 
+class LinearFusion(nn.Module):
+    
+    def __init__(self, input_size=256, output_size=256):
+        super(LinearFusion, self).__init__()
+        # Linear layer to reduce the number of elements from 6 to 2
+        self.reduce_layer = nn.Linear(6, 2)
+        
+    def forward(self, x):
+        # x is expected to be of shape [batch_size, 6, 256]
+        # Transpose to [batch_size, 256, 6] to apply reduction
 
+        # ipdb.set_trace() # [6, 256, 1, 1]
+        x = x.view(6, 256).transpose(0, 1)  # Shape: [256, 6]
+        x = self.reduce_layer(x)  # Shape: [256, 2]
+        x = x.transpose(0, 1).view(2, 256, 1, 1)  # Shape: [2, 256, 1, 1]
+        # ipdb.set_trace() # [2, 256, 1, 1]
+
+        return x
+
+
+    
 class _Segmentation(nn.Module):
-    def __init__(self, backbone,classifier):
+    def __init__(self, backbone,classifier, blender=None):
         super(_Segmentation, self).__init__()
         self.backbone = backbone
         self.classifier = classifier
 
+        if blender is not None:
+            self.linear_fusion = blender
+
     # Adjust new div   
-    def forward(self, x, transfer=False,mix=False,most_list=None,saved_params=None,activation=None,s=0, div=3):
+    def forward(self, x, transfer=False,mix=False,most_list=None,saved_params=None, saved_params_4=None, saved_params_6=None, activation=None,s=0, div=3, fusion=False):
         
         # ipdb.set_trace()
         input_shape = x.shape[-2:]
@@ -119,24 +142,36 @@ class _Segmentation(nn.Module):
                 #print(cnt, div * div)
                 # assert cnt == div * div
 
-
-
-
-            # 24/6/12 Stylization - Patch Wise Stylization
+            # 24/6/20 - patch fusion stylization - by mlp 
             for j,most in enumerate(most_list):  #len(most_list)=div*div   
                 for k,el in enumerate(most):  #len(most)=B
-
+                    
                     if not saved_params[str(el)+'_mu']:
                         idx = random.choice([idxx for idxx in range (len(saved_params['255_mu']))])
                         mu_t = saved_params['255_mu'][idx]
                         std_t = saved_params['255_std'][idx]
-                    else: #orig
-
+                    else: 
                         #TODO: Adjust New Sampling Method 
                         idx = random.choice([idxx for idxx in range (len(saved_params[str(el)+'_mu']))])
-                        mu_t = saved_params[str(el)+'_mu'][idx]
-                        std_t = saved_params[str(el)+'_std'][idx]
+                        
+                        if fusion:
+                            mu_t_3 = saved_params[str(el)+'_mu'][idx]
+                            std_t_3 = saved_params[str(el)+'_std'][idx]
+                            mu_t_4 = saved_params_4[str(el)+'_mu'][idx]
+                            std_t_4 = saved_params_4[str(el)+'_std'][idx]
+                            mu_t_6 = saved_params_6[str(el)+'_mu'][idx]
+                            std_t_6 = saved_params_6[str(el)+'_std'][idx]
+                            
+                            # ipdb.set_trace()
 
+                            input = torch.stack([mu_t_3, std_t_3, mu_t_4, std_t_4, mu_t_6, std_t_6], dim=0).to('cuda')
+                            res = self.linear_fusion(input)
+                            mu_t, std_t = res[0], res[1]
+                            # ipdb.set_trace()
+                        else:    
+                            mu_t = saved_params[str(el)+'_mu'][idx]
+                            std_t = saved_params[str(el)+'_std'][idx]
+                    
                     mu_t_f1[k,:,h:h+features['low_level'].shape[2]//div,w:w+features['low_level'].shape[3]//div]  = mu_t.expand((256,d2//div,d3//div))
                     std_t_f1[k,:,h:h+d2//div,w:w+d3//div] = std_t.expand((256,d2//div,d3//div))
                 w+=d2//div
@@ -155,6 +190,7 @@ class _Segmentation(nn.Module):
             features['low_level'] = activation(features['low_level'])
            
         features['out'] = self.backbone(features['low_level'],trunc1=True,trunc2=False,
+                                        
             trunc3=False,trunc4=False,get1=False,get2=False,get3=False,get4=True)
     
         x = self.classifier(features)
