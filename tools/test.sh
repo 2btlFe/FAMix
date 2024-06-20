@@ -1,14 +1,13 @@
 WORKDIR=$1
 CKPT=${WORKDIR}/best_deeplabv3plus_resnet_clip_gta5.pth
 
-
-# python3 main.py \
-# --dataset cityscapes \
-# --data_root /workspace/ssd0/byeongcheol/DGSS/Data/cityscapes \
-# --ckpt ${CKPT} \
-# --test_only \
-# --ACDC_sub ACDC_subset_if_tested_on_ACDC \
-# --work_dir ${WORKDIR}
+python3 main.py \
+--dataset cityscapes \
+--data_root /workspace/ssd0/byeongcheol/DGSS/Data/cityscapes \
+--ckpt ${CKPT} \
+--test_only \
+--ACDC_sub ACDC_subset_if_tested_on_ACDC \
+--ckpts_path ${WORKDIR}
 
 python3 main.py \
 --dataset bdd100k \
@@ -16,7 +15,7 @@ python3 main.py \
 --ckpt ${CKPT} \
 --test_only \
 --ACDC_sub ACDC_subset_if_tested_on_ACDC \
---work_dir ${WORKDIR}
+--ckpts_path ${WORKDIR}
 
 python3 main.py \
 --dataset mapillary \
@@ -24,7 +23,7 @@ python3 main.py \
 --ckpt ${CKPT} \
 --test_only \
 --ACDC_sub ACDC_subset_if_tested_on_ACDC \
---work_dir ${WORKDIR}
+--ckpts_path ${WORKDIR}
 
 python3 main.py \
 --dataset synthia \
@@ -32,7 +31,7 @@ python3 main.py \
 --ckpt ${CKPT} \
 --test_only \
 --ACDC_sub ACDC_subset_if_tested_on_ACDC \
---work_dir ${WORKDIR}
+--ckpts_path ${WORKDIR}
 
 python3 main.py \
 --dataset gta5 \
@@ -40,7 +39,7 @@ python3 main.py \
 --ckpt ${CKPT}  \
 --test_only \
 --ACDC_sub ACDC_subset_if_tested_on_ACDC \
---work_dir ${WORKDIR}
+--ckpts_path ${WORKDIR}
 
 
 
