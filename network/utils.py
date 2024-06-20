@@ -119,6 +119,9 @@ class _Segmentation(nn.Module):
                 #print(cnt, div * div)
                 # assert cnt == div * div
 
+
+
+
             # 24/6/12 Stylization - Patch Wise Stylization
             for j,most in enumerate(most_list):  #len(most_list)=div*div   
                 for k,el in enumerate(most):  #len(most)=B

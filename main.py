@@ -78,7 +78,6 @@ def get_argparser():
 
     parser.add_argument("--transfer", action='store_true',default=True)
     parser.add_argument("--div", type=int, default=3, help="number of divisions for the image")
-    parser.add_argument("--work_dir", type=str, default='model_ckpt', help="path to save model")
     parser.add_argument("--patch_method", type=str, default="default")
     return parser
 
@@ -113,8 +112,8 @@ def main():
     stream_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
 
     # FileHandler 설정 (파일에 로그 기록)
-    os.makedirs(opts.work_dir, exist_ok=True)
-    file_handler = logging.FileHandler(f'{opts.work_dir}/train.log')
+    os.makedirs(opts.ckpts_path, exist_ok=True)
+    file_handler = logging.FileHandler(f'{opts.ckpts_path}/train.log')
     file_handler.setLevel(logging.DEBUG)  # 로그 레벨 설정
     file_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
 
@@ -229,7 +228,7 @@ def main():
     if not opts.test_only: 
         
         # Tensorboard 설정
-        log_dir = f"{opts.work_dir}/training_logs"
+        log_dir = f"{opts.ckpts_path}/training_logs"
         writer = SummaryWriter(log_dir=log_dir)
 
         if opts.patch_method != "default":
@@ -251,7 +250,7 @@ def main():
 
     if opts.test_only:        
         # Tensorboard 설정
-        log_dir = f"{opts.work_dir}/test_logs"
+        log_dir = f"{opts.ckpts_path}/test_logs"
         os.makedirs(log_dir, exist_ok=True)
         writer = SummaryWriter(log_dir=log_dir)
 
@@ -271,18 +270,21 @@ def main():
             'bicycle'
         ]
 
-        
         iou_dict = {class_name: val_score["Class IoU"][i] for i, class_name in enumerate(class_names)} 
         writer.add_scalar("mIoU", val_score['Mean IoU'] ,cur_itrs)
         writer.add_scalars("IoU_per_class", iou_dict, cur_itrs)
         
 
-        save_txt = f"{opts.work_dir}_logs_PODA_val_gta5_{opts.dataset}.txt"
+        save_txt = f"{opts.ckpts_path}/logs_PODA_val_gta5_{opts.dataset}.txt"
 
-        save_txt = f"logs_PODA_val_gta5_{opts.dataset}.txt"
+        # save_txt = f"logs_PODA_val_gta5_{opts.dataset}.txt"
         with open(save_txt, 'a') as f:
             f.write(f'{val_score["Mean IoU"]}\n')
-            f.write(f'{val_score["Class IoU"]}\n') 
+            
+            for i in range(len(val_score["Class IoU"])):
+                f.write(f'{val_score["Class IoU"][i] * 100} ')
+            
+            # f.write(f'{val_score["Class IoU"]}\n') 
         return
 
     # initial div
@@ -334,6 +336,7 @@ def main():
             idx = random.randint(0,2)
             loaded_dict_patches = loaded_dict_patches_list[idx]
             div = div_list[idx]
+            logger.info("Epoch %d, patch_style= %d", cur_epochs, div)
 
         # Alternate
         elif opts.patch_method == "alternate":
@@ -349,7 +352,10 @@ def main():
 
         # # ranking
         # elif opts.patch_method == "ranking":
-            
+        
+        logger.info("Epoch %d, div=%f" %
+                    (cur_epochs, div))
+
         for i, (images, labels) in tqdm(enumerate(train_loader), desc="Training", unit="batch", unit_scale=True):
             
             cur_itrs += 1
