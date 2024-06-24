@@ -79,6 +79,7 @@ def get_argparser():
     parser.add_argument("--transfer", action='store_true',default=True)
     parser.add_argument("--div", type=int, default=3, help="number of divisions for the image")
     parser.add_argument("--patch_method", type=str, default="default")
+    parser.add_argument("--num_layer", type=int, default=0)
     return parser
 
 def validate(model, loader, device, metrics, dataset):
@@ -153,12 +154,12 @@ def main():
     (opts.dataset, len(train_dst), len(val_dst)))
 
     # Set up model
-    if opts.patch_method == "fusion":
-        fusion = True
-    else:
-        fusion = False
+    # if opts.patch_method == "fusion":
+    #     fusion = True
+    # else:
+    #     fusion = False
 
-    model = network.modeling.__dict__['deeplabv3plus_resnet_clip'](num_classes=opts.num_classes, BB= opts.BB, OS=opts.OS, fusion=fusion)
+    model = network.modeling.__dict__['deeplabv3plus_resnet_clip'](num_classes=opts.num_classes, BB= opts.BB, OS=opts.OS, mode=opts.patch_method, num_layer=opts.num_layer)
     model.backbone.attnpool = nn.Identity()
 
     # freeze layers
@@ -175,7 +176,7 @@ def main():
         optimizer = torch.optim.SGD(params=[
             {'params': model.backbone.parameters(), 'lr': 0.1 * opts.lr},
             {'params': model.classifier.parameters(), 'lr': opts.lr},
-            {'params': model.linear_fusion.parameters(), 'lr': opts.lr},
+            {'params': model.mlp_fusion.parameters(), 'lr': opts.lr},
             ], lr=opts.lr, momentum=0.9, weight_decay=opts.weight_decay)
     else:        
         optimizer = torch.optim.SGD(params=[
@@ -242,20 +243,19 @@ def main():
         log_dir = f"{opts.ckpts_path}/training_logs"
         writer = SummaryWriter(log_dir=log_dir)
 
-        if opts.patch_method != "default":
-            
-            loaded_dict_patches_list = []
+        loaded_dict_patches_list = []
 
-            with open(opts.path_for_3stats, 'rb') as f:
-                loaded_dict_patches = pickle.load(f)
-                loaded_dict_patches_list.append(loaded_dict_patches)
-            with open(opts.path_for_4stats, 'rb') as f:
-                loaded_dict_patches_list.append(pickle.load(f))
-            with open(opts.path_for_6stats, 'rb') as f:
-                loaded_dict_patches_list.append(pickle.load(f))
-        else:
-            with open(opts.path_for_stats, 'rb') as f:
-                loaded_dict_patches = pickle.load(f)
+        with open(opts.path_for_3stats, 'rb') as f:
+            loaded_dict_patches_list.append(pickle.load(f))
+        with open(opts.path_for_4stats, 'rb') as f:
+            loaded_dict_patches_list.append(pickle.load(f))
+        with open(opts.path_for_6stats, 'rb') as f:
+            loaded_dict_patches_list.append(pickle.load(f))
+        with open(opts.path_for_stats, 'rb') as f:
+            loaded_dict_patches = pickle.load(f)
+
+        if opts.patch_method == "fusion":
+            loaded_dict_patches = loaded_dict_patches_list[0]
 
         relu = nn.ReLU(inplace=True)
 
@@ -395,7 +395,7 @@ def main():
             beta_dist = torch.distributions.beta.Beta(0.1, 0.1)
             s = beta_dist.sample((opts.batch_size, 256, 1, 1)).to('cuda')
             
-            outputs,features = model(images, transfer=opts.transfer,mix=True,most_list=most_list,saved_params=loaded_dict_patches, saved_params_4=loaded_dict_patches_list[1], saved_params_6=loaded_dict_patches_list[2], activation=relu,s=s, div=div, fusion=fusion)
+            outputs,features = model(images, transfer=opts.transfer,mix=True,most_list=most_list,saved_params=loaded_dict_patches, saved_params_4=loaded_dict_patches_list[1], saved_params_6=loaded_dict_patches_list[2], activation=relu,s=s, div=div, mode="fusion")
 
             # ipdb.set_trace()
 

@@ -7,43 +7,49 @@ from torch.nn.functional import unfold
 import ipdb
 import queue
 
-class LinearFusion(nn.Module):
+# class LinearFusion(nn.Module):
     
-    def __init__(self, input_size=256, output_size=256):
-        super(LinearFusion, self).__init__()
-        # Linear layer to reduce the number of elements from 6 to 2
-        self.reduce_layer = nn.Linear(6, 2)
+#     def __init__(self, input_size=256, output_size=256):
+#         super(LinearFusion, self).__init__()
+#         # Linear layer to reduce the number of elements from 6 to 2
+#         self.reduce_layer = nn.Linear(6, 2)
         
-    def forward(self, x):
-        # x is expected to be of shape [batch_size, 6, 256]
-        # Transpose to [batch_size, 256, 6] to apply reduction
+#     def forward(self, x):
+#         # x is expected to be of shape [batch_size, 16, 6, 256, 1, 1]
+#         batch_size = x.size(0)
+#         num_elements = x.size(1)  # 16
+#         # Reshape x to [batch_size, num_elements, 6, 256]
+#         x = x.view(batch_size, num_elements, 6, 256).transpose(2, 3)  # Shape: [batch_size, num_elements, 256, 6]
+#         x = self.reduce_layer(x)  # Shape: [batch_size, num_elements, 256, 2]
+#         x = x.transpose(2, 3).view(batch_size, num_elements, 2, 256, 1, 1)  # Shape: [batch_size, num_elements, 2, 256, 1, 1]
 
-        # ipdb.set_trace() # [6, 256, 1, 1]
-        x = x.view(6, 256).transpose(0, 1)  # Shape: [256, 6]
-        x = self.reduce_layer(x)  # Shape: [256, 2]
-        x = x.transpose(0, 1).view(2, 256, 1, 1)  # Shape: [2, 256, 1, 1]
-        # ipdb.set_trace() # [2, 256, 1, 1]
+#         return x
 
-        return x
-
-# MLP
+# feature disentangle 생각 
 class MLPFusion(nn.Module):
-    
-    def __init__(self, input_size=256, output_size=256):
+
+    def __init__(self, layer = 0, input_size=256, output_size=256):
         super(MLPFusion, self).__init__()
         # Linear layer to reduce the number of elements from 6 to 2
-        self.reduce_layer = nn.Linear(6, 2)
+        
+        self.layer = nn.ModuleList()
+        for i in range(layer):
+            self.layer.append(nn.Linear(6, 6))
+        self.layer.append(nn.Linear(6, 2))
         
     def forward(self, x):
-        # x is expected to be of shape [batch_size, 6, 256]
-        # Transpose to [batch_size, 256, 6] to apply reduction
-
-        # ipdb.set_trace() # [6, 256, 1, 1]
-        x = x.view(6, 256).transpose(0, 1)  # Shape: [256, 6]
-        x = self.reduce_layer(x)  # Shape: [256, 2]
-        x = x.transpose(0, 1).view(2, 256, 1, 1)  # Shape: [2, 256, 1, 1]
-        # ipdb.set_trace() # [2, 256, 1, 1]
-
+        # x is expected to be of shape [batch_size, 16, 6, 256, 1, 1]
+        batch_size = x.size(0)
+        num_elements = x.size(1)  # 16
+        # Reshape x to [batch_size, num_elements, 6, 256]
+        x = x.view(batch_size, num_elements, 6, 256).transpose(2, 3)  # Shape: [batch_size, num_elements, 256, 6]
+        
+        # ipdb.set_trace()
+        for layer in self.layer:
+            x = layer(x)
+           
+        x = x.transpose(2, 3).view(batch_size, num_elements, 2, 256, 1, 1)
+        
         return x
 
 class _Segmentation(nn.Module):
@@ -53,10 +59,11 @@ class _Segmentation(nn.Module):
         self.classifier = classifier
 
         if blender is not None:
-            self.linear_fusion = blender
+            self.mlp_fusion = blender
+
 
     # Adjust new div   
-    def forward(self, x, transfer=False,mix=False,most_list=None,saved_params=None, saved_params_4=None, saved_params_6=None, activation=None,s=0, div=3, fusion=False):
+    def forward(self, x, transfer=False,mix=False,most_list=None,saved_params=None, saved_params_4=None, saved_params_6=None, activation=None,s=0, div=3, mode="default"):
         
         # ipdb.set_trace()
         input_shape = x.shape[-2:]
@@ -66,12 +73,18 @@ class _Segmentation(nn.Module):
         d2 ,d3 = features['low_level'].shape[2], features['low_level'].shape[3]
 
         if transfer:
-
             mean, std = calc_mean_std(features['low_level'])
             self.size = features['low_level'].size()
 
             mu_t_f1 = torch.zeros([8,256,d2,d3])
             std_t_f1 = torch.zeros([8,256,d2,d3])
+            
+            # 24/6/24 - patch fusion stylization - by linear and mlp
+            if "fusion" in mode:
+                mu_bin = torch.zeros([8, div*div, 3, 256, 1, 1])
+                std_bin = torch.zeros([8, div*div, 3, 256, 1, 1])
+                # ipdb.set_trace()
+            
             h=0
             w=0
 
@@ -172,7 +185,7 @@ class _Segmentation(nn.Module):
                         #TODO: Adjust New Sampling Method 
                         idx = random.choice([idxx for idxx in range (len(saved_params[str(el)+'_mu']))])
                         
-                        if fusion:
+                        if "fusion" in mode:
                             mu_t_3 = saved_params[str(el)+'_mu'][idx]
                             std_t_3 = saved_params[str(el)+'_std'][idx]
                             mu_t_4 = saved_params_4[str(el)+'_mu'][idx]
@@ -181,21 +194,51 @@ class _Segmentation(nn.Module):
                             std_t_6 = saved_params_6[str(el)+'_std'][idx]
                             
                             # ipdb.set_trace()
-
-                            input = torch.stack([mu_t_3, std_t_3, mu_t_4, std_t_4, mu_t_6, std_t_6], dim=0).to('cuda')
-                            res = self.linear_fusion(input)
-                            mu_t, std_t = res[0], res[1]
+                            mu_t = torch.stack([mu_t_3, mu_t_4, mu_t_6], dim=0)  # [3, 256, 1, 1]
+                            std_t = torch.stack([std_t_3, std_t_4, std_t_6], dim=0)  #[3, 256, 1, 1]
+                            
+                            # res = self.mlp_fusion(input)
+                            # mu_t, std_t = res[0], res[1]
                             # ipdb.set_trace()
                         else:    
                             mu_t = saved_params[str(el)+'_mu'][idx]
                             std_t = saved_params[str(el)+'_std'][idx]
                     
-                    mu_t_f1[k,:,h:h+features['low_level'].shape[2]//div,w:w+features['low_level'].shape[3]//div]  = mu_t.expand((256,d2//div,d3//div))
-                    std_t_f1[k,:,h:h+d2//div,w:w+d3//div] = std_t.expand((256,d2//div,d3//div))
+                    if "fusion" in mode:                    
+                        # ipdb.set_trace()
+                        mu_bin[k, j, :] = mu_t      #[8, div*div, 3, 256, 1, 1]
+                        std_bin[k, j, :] = std_t    #[8, div*div, 3, 256, 1, 1]
+                    else:
+                        mu_t_f1[k,:,h:h+features['low_level'].shape[2]//div,w:w+features['low_level'].shape[3]//div]  = mu_t.expand((256,d2//div,d3//div))
+                        std_t_f1[k,:,h:h+d2//div,w:w+d3//div] = std_t.expand((256,d2//div,d3//div))
                 w+=d2//div
                 if (j+1)%div==0:
                     w=0
                     h+=d3//div
+
+
+            if "fusion" in mode:
+                # 1. 모두 다 Fusion
+                # ipdb.set_trace()
+                param = torch.cat([mu_bin, std_bin], dim=2).to('cuda') # [8, div*div, 6, 256, 1, 1]
+                res = self.mlp_fusion(param)   # [8, div*div, 2, 256, 1, 1]
+
+                num_patches = div*div
+                for j in range(num_patches):
+                    # ipdb.set_trace()
+                    h=(j//div)*d3//div
+                    w=(j%div)*d2//div
+                    
+                    mu_t_f1[:,:,h:h+d2//div,w:w+d3//div] = res[:, j, 0].expand((8, 256, d2//div, d3//div))
+                    std_t_f1[:,:,h:h+d2//div,w:w+d3//div] = res[:, j, 1].expand((8, 256, d2//div, d3//div))
+
+                # 2. mu, std 각각 Fusion
+                    
+                # 3. MLP 쓰기 
+                    
+                # 4. Adversarial
+                    
+
 
             if not mix:
                 features['low_level'] = (std_t_f1.to('cuda') * features_low_norm + mu_t_f1.to('cuda'))
