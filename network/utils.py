@@ -26,8 +26,26 @@ class LinearFusion(nn.Module):
 
         return x
 
-
+# MLP
+class MLPFusion(nn.Module):
     
+    def __init__(self, input_size=256, output_size=256):
+        super(MLPFusion, self).__init__()
+        # Linear layer to reduce the number of elements from 6 to 2
+        self.reduce_layer = nn.Linear(6, 2)
+        
+    def forward(self, x):
+        # x is expected to be of shape [batch_size, 6, 256]
+        # Transpose to [batch_size, 256, 6] to apply reduction
+
+        # ipdb.set_trace() # [6, 256, 1, 1]
+        x = x.view(6, 256).transpose(0, 1)  # Shape: [256, 6]
+        x = self.reduce_layer(x)  # Shape: [256, 2]
+        x = x.transpose(0, 1).view(2, 256, 1, 1)  # Shape: [2, 256, 1, 1]
+        # ipdb.set_trace() # [2, 256, 1, 1]
+
+        return x
+
 class _Segmentation(nn.Module):
     def __init__(self, backbone,classifier, blender=None):
         super(_Segmentation, self).__init__()
