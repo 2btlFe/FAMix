@@ -5,7 +5,11 @@ DATE=$(date +"%Y%m%d")
 TIME=$(date +"%H-%M-%S")
 # PATCH_METHOD=('default' 'random' 'alternate' 'division' 'reverse_division')
 
+# Fusion
+# PATCH_METHOD='fusion' 'fusion_mlp' 'fusion_adv' 
+
 PATCH_METHOD=$2
+NUM_LAYER=$3
 
 python3 main.py \
 --dataset ${DATASET} \
@@ -21,4 +25,5 @@ python3 main.py \
 --path_for_4stats save_dir/${DATASET}_4_saved_params2.pkl \
 --path_for_6stats save_dir/${DATASET}_6_saved_params2.pkl \
 --patch_method ${PATCH_METHOD} \
+--num_layer ${NUM_LAYER} \
 --div ${PATCH_SIZE}

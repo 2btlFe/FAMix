@@ -2,9 +2,9 @@ from ._deeplab import  DeepLabHeadV3Plus, DeepLabV3
 from .backbone import resnet_clip
 import os
 import torch
-from .utils import LinearFusion
+from .utils import MLPFusion
 
-def deeplabv3plus_resnet_clip(num_classes=19,BB = "RN50",OS=16, fusion=False):
+def deeplabv3plus_resnet_clip(num_classes=19,BB = "RN50",OS=16, mode="default", num_layer=0):
     
     device = torch.device('cuda' if torch.cuda.is_available() else "cpu")
 
@@ -37,9 +37,9 @@ def deeplabv3plus_resnet_clip(num_classes=19,BB = "RN50",OS=16, fusion=False):
     classifier = DeepLabHeadV3Plus(inplanes, low_level_planes, num_classes, aspp_dilate)
     backbone = backbone.visual
 
-    if fusion:
-        blenber = LinearFusion().to(device)
-        model = DeepLabV3(backbone,classifier,blenber)
+    if "fusion" in mode:
+        blender = MLPFusion(num_layer).to(device)
+        model = DeepLabV3(backbone,classifier,blender)
     else:
         model = DeepLabV3(backbone,classifier)
     
