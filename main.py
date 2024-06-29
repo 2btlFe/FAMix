@@ -80,6 +80,7 @@ def get_argparser():
     parser.add_argument("--div", type=int, default=3, help="number of divisions for the image")
     parser.add_argument("--patch_method", type=str, default="default")
     parser.add_argument("--num_layer", type=int, default=0)
+    parser.add_argument("--single",  action='store_true', default=False)
     return parser
 
 def validate(model, loader, device, metrics, dataset):
@@ -395,7 +396,7 @@ def main():
             beta_dist = torch.distributions.beta.Beta(0.1, 0.1)
             s = beta_dist.sample((opts.batch_size, 256, 1, 1)).to('cuda')
             
-            outputs,features = model(images, transfer=opts.transfer,mix=True,most_list=most_list,saved_params=loaded_dict_patches, saved_params_4=loaded_dict_patches_list[1], saved_params_6=loaded_dict_patches_list[2], activation=relu,s=s, div=div, mode=opts.patch_method)
+            outputs,features = model(images, transfer=opts.transfer,mix=True,most_list=most_list,saved_params=loaded_dict_patches, saved_params_4=loaded_dict_patches_list[1], saved_params_6=loaded_dict_patches_list[2], activation=relu,s=s, div=div, mode=opts.patch_method, single=opts.single)
 
             # ipdb.set_trace()
 

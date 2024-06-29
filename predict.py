@@ -12,6 +12,7 @@ import torch.nn as nn
 from PIL import Image
 from utils import ext_transforms as et
 from collections import namedtuple
+import ipdb
 
 CityscapesClass = namedtuple('CityscapesClass', ['name', 'id', 'train_id', 'category', 'category_id',
                                                      'has_instances', 'ignore_in_eval', 'color'])

@@ -63,7 +63,7 @@ class _Segmentation(nn.Module):
 
 
     # Adjust new div   
-    def forward(self, x, transfer=False,mix=False,most_list=None,saved_params=None, saved_params_4=None, saved_params_6=None, activation=None,s=0, div=3, mode="default"):
+    def forward(self, x, transfer=False,mix=False,most_list=None,saved_params=None, saved_params_4=None, saved_params_6=None, activation=None,s=0, div=3, mode="default", single=False):
         
         # ipdb.set_trace()
         input_shape = x.shape[-2:]
@@ -111,7 +111,6 @@ class _Segmentation(nn.Module):
             
             h=0
             w=0
-
 
 
             # 24/6/12 Patch finding
@@ -177,13 +176,20 @@ class _Segmentation(nn.Module):
             for j,most in enumerate(most_list):  #len(most_list)=div*div   
                 for k,el in enumerate(most):  #len(most)=B
                     
+
                     if not saved_params[str(el)+'_mu']:
-                        idx = random.choice([idxx for idxx in range (len(saved_params['255_mu']))])
+                        if single:
+                            idx = 0
+                        else:
+                            idx = random.choice([idxx for idxx in range (len(saved_params['255_mu']))])
                         mu_t = saved_params['255_mu'][idx]
                         std_t = saved_params['255_std'][idx]
                     else: 
                         #TODO: Adjust New Sampling Method 
-                        idx = random.choice([idxx for idxx in range (len(saved_params[str(el)+'_mu']))])
+                        if single:
+                            idx =0
+                        else:
+                            idx = random.choice([idxx for idxx in range (len(saved_params[str(el)+'_mu']))])
                         
                         if "fusion" in mode:
                             mu_t_3 = saved_params[str(el)+'_mu'][idx]

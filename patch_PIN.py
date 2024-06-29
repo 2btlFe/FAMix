@@ -15,9 +15,34 @@ from torch.nn.functional import unfold
 from utils.PPIN import PPIN 
 import ipdb
 from tqdm import tqdm
+from PIL import Image
+from datasets import Cityscapes
+
+
 
 from torch.utils.tensorboard import SummaryWriter
 
+
+def show_img(x, img_name):
+    
+    x = x.detach().cpu().numpy()
+    x = np.transpose(x, (1, 2, 0))
+    x = (x - x.min()) / (x.max() - x.min())
+    img = Image.fromarray((x * 255).astype(np.uint8))
+    img.save(img_name)
+
+def show_label(x, label_name):
+    # ipdb.set_trace()
+    decode_fn = Cityscapes.decode_target
+    x = x.to(int)
+    x = x.squeeze(0)
+    x = x.detach().cpu().numpy()
+    x[x == 255] = 19
+    # x = np.transpose(x, (1, 2, 0))
+    
+    colorized_preds = decode_fn(x).astype('uint8')
+    colorized_preds = Image.fromarray(colorized_preds)
+    colorized_preds.save(label_name)
 
 def compose_text_with_templates(text: str, templates) -> list:
     return [template.format(text) for template in templates]
@@ -239,23 +264,29 @@ def main(random_styles=random_styles):
             '255_std':[],
     }
 
+    patch_dir = f"patches_{opts.div}"
+    os.makedirs(patch_dir, exist_ok=True)
 
     for i, (images, labels) in enumerate(tqdm(train_loader)):
             print("i = ",i)
-  
+
             f1 = model.backbone(images.to(device),trunc1=False,trunc2=False,
             trunc3=False,trunc4=False,get1=True,get2=False,get3=False,get4=False)
-              
+            # [16, 256, 192, 192]
+
             #the target text is determined by the most frequent class in the corresponding crop
             #ipdb.set_trace()
             labels_ = labels.unsqueeze(1)  # (B,1,768,768)
             labels_ = labels_.float()
+            #[16, 1, 768, 768]
 
-            # div chang
+            
+            
             # ipdb.set_trace()
             side = labels.size()[2]
             new_side = int(side // opts.div)
 
+            img_patches = unfold(images, kernel_size=new_side, stride=new_side).permute(-1,0,1).reshape(-1,3,new_side,new_side) ## (div*div*B,3,H/div,W/div)  - div is 3
             lbl_patches = unfold(labels_, kernel_size=new_side, stride=new_side).permute(-1,0,1).reshape(-1,1,new_side,new_side) ## (div*div*B,1,H/div,W/div)  - div is 3
 
             most_list = []
@@ -263,6 +294,7 @@ def main(random_styles=random_styles):
             for j in range(lbl_patches.shape[0]):
                 
                 most_list.append(cityscapes.Cityscapes.name(int(torch.mode(torch.flatten(lbl_patches[j,:,:,:])).values)) if torch.mode(torch.flatten(lbl_patches[j,:,:,:])).values != 255 else 255)
+            
 
             unique = list(set(most_list))
             ind = []
@@ -281,13 +313,25 @@ def main(random_styles=random_styles):
                 else:
                     target =random.choice(random_styles) + ' ' + k
 
-
+                # prompt를 그냥 단순히 다 합쳐버렸다 -> 진짜 그냥 의미가 없는 짬뽕이다
                 target = compose_text_with_templates(target, imagenet_templates)
+
+                # ipdb.set_trace()
+                # save the target / img / label
+                dir = os.path.join(patch_dir, str(k))
+                os.makedirs(dir, exist_ok=True)
+                img_name = os.path.join(dir, f"{k}_{i}_img.png")
+                label_name = os.path.join(dir, f"{k}_{i}_label.png")
+                show_img(img_patches[ind[j]], img_name)
+                show_label(lbl_patches[ind[j]], label_name)
 
                 tokens = clip.tokenize(target).to(device)
 
                 text_target[j] = clip_model.encode_text(tokens).mean(axis=0, keepdim=True).detach()
                 text_target[j] /= text_target[j].norm(dim=-1, keepdim=True)
+
+
+
 
             #optimize mu and sigma of target features with CLIP
             model_ppin = PPIN(f1.to(device),div=opts.div,ind=ind)

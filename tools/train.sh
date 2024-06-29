@@ -26,4 +26,5 @@ python3 main.py \
 --path_for_6stats save_dir/${DATASET}_6_saved_params2.pkl \
 --patch_method ${PATCH_METHOD} \
 --num_layer ${NUM_LAYER} \
---div ${PATCH_SIZE}
+--div ${PATCH_SIZE} \
+# --single    # 6/26 17:54 이후 버리기 
