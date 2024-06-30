@@ -75,11 +75,13 @@ def get_argparser():
     parser.add_argument("--path_for_3stats", type=str, help="path for the optimized 3 stats")
     parser.add_argument("--path_for_4stats", type=str, help="path for the optimized 4 stats")
     parser.add_argument("--path_for_6stats", type=str, help="path for the optimized 6 stats")
-
+    parser.add_argument("--path_for_12stats", type=str, help="path for the optimized 12 stats")
+    
     parser.add_argument("--transfer", action='store_true',default=True)
     parser.add_argument("--div", type=int, default=3, help="number of divisions for the image")
     parser.add_argument("--patch_method", type=str, default="default")
     parser.add_argument("--num_layer", type=int, default=0)
+
     return parser
 
 def validate(model, loader, device, metrics, dataset):
@@ -211,6 +213,7 @@ def main():
     if opts.ckpt is not None and os.path.isfile(opts.ckpt):
         
         checkpoint = torch.load(opts.ckpt, map_location=torch.device('cpu'))
+        # ipdb.set_trace()
         model.load_state_dict(checkpoint["model_state"])
         model.to(device)
         if opts.continue_training:
@@ -251,10 +254,12 @@ def main():
             loaded_dict_patches_list.append(pickle.load(f))
         with open(opts.path_for_6stats, 'rb') as f:
             loaded_dict_patches_list.append(pickle.load(f))
+        with open(opts.path_for_12stats, 'rb') as f:
+            loaded_dict_patches_list.append(pickle.load(f))
         with open(opts.path_for_stats, 'rb') as f:
             loaded_dict_patches = pickle.load(f)
-
-        if opts.patch_method == "fusion":
+        
+        if opts.patch_method == "fusion" or opts.patch_method == "adjacent":
             loaded_dict_patches = loaded_dict_patches_list[0]
 
         relu = nn.ReLU(inplace=True)
@@ -395,7 +400,7 @@ def main():
             beta_dist = torch.distributions.beta.Beta(0.1, 0.1)
             s = beta_dist.sample((opts.batch_size, 256, 1, 1)).to('cuda')
             
-            outputs,features = model(images, transfer=opts.transfer,mix=True,most_list=most_list,saved_params=loaded_dict_patches, saved_params_4=loaded_dict_patches_list[1], saved_params_6=loaded_dict_patches_list[2], activation=relu,s=s, div=div, mode=opts.patch_method)
+            outputs,features = model(images, transfer=opts.transfer,mix=True,most_list=most_list,saved_params=loaded_dict_patches, saved_params_4=loaded_dict_patches_list[1], saved_params_6=loaded_dict_patches_list[2], saved_params_12=loaded_dict_patches_list[3], activation=relu,s=s, div=div, mode=opts.patch_method)
 
             # ipdb.set_trace()
 

@@ -24,6 +24,7 @@ python3 main.py \
 --path_for_3stats save_dir/${DATASET}_3_saved_params2.pkl \
 --path_for_4stats save_dir/${DATASET}_4_saved_params2.pkl \
 --path_for_6stats save_dir/${DATASET}_6_saved_params2.pkl \
+--path_for_12stats save_dir/${DATASET}_12_saved_params2.pkl \
 --patch_method ${PATCH_METHOD} \
 --num_layer ${NUM_LAYER} \
 --div ${PATCH_SIZE}

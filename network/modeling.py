@@ -2,7 +2,9 @@ from ._deeplab import  DeepLabHeadV3Plus, DeepLabV3
 from .backbone import resnet_clip
 import os
 import torch
-from .utils import MLPFusion
+# from .utils import MLPFusion
+from .utils import MLPFusion #LinearFusion
+import ipdb
 
 def deeplabv3plus_resnet_clip(num_classes=19,BB = "RN50",OS=16, mode="default", num_layer=0):
     
@@ -37,7 +39,9 @@ def deeplabv3plus_resnet_clip(num_classes=19,BB = "RN50",OS=16, mode="default", 
     classifier = DeepLabHeadV3Plus(inplanes, low_level_planes, num_classes, aspp_dilate)
     backbone = backbone.visual
 
+    # ipdb.set_trace()
     if "fusion" in mode:
+        # blender = LinearFusion().to(device)
         blender = MLPFusion(num_layer).to(device)
         model = DeepLabV3(backbone,classifier,blender)
     else:
