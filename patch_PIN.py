@@ -152,6 +152,8 @@ random_styles = ['Ethereal Mist style',
 'Magical Realism style',
 ]
 
+cls_names =  ['road', 'sidewalk', 'building', 'wall', 'fence', 'pole', 'traffic light', 'traffic sign', 'vegetation', 'terrain', 'sky', 'person', 'rider', 'car', 'truck', 'bus', 'train', 'motorcycle', 'bicycle', '255']
+
 
 def get_argparser():
     parser = argparse.ArgumentParser()
@@ -174,12 +176,14 @@ def get_argparser():
     parser.add_argument("--total_it", type = int, default =100, help= "total number of optimization iterations")
     # learn statistics
     parser.add_argument("--resize_feat",action='store_true',default=False, help="resize the features map to the dimension corresponding to CLIP")
+    parser.add_argument("--mining_time", type=str, default='0', help="time")
     parser.add_argument("--div", type=int, default=3)
     # random seed
     parser.add_argument("--random_seed", type=int, default=1, help="random seed (default: 1)")
     #data augmentation
     parser.add_argument("--data_aug", action='store_true',default=False)
     parser.add_argument("--patch_size", type=int, default=3, help="patch_size")
+    
 
     return parser
 
@@ -264,8 +268,20 @@ def main(random_styles=random_styles):
             '255_std':[],
     }
 
-    patch_dir = f"patches_{opts.div}"
+    # time 
+
+
+    patch_dir = f"patches_{opts.div}_{opts.mining_time}"
     os.makedirs(patch_dir, exist_ok=True)
+
+    cls_style = {}
+    for cls_idx in cls_names:
+        style_dic = {}
+        for style in random_styles:
+            style_dic[style] = 0
+        cls_style[cls_idx] = style_dic
+
+    # ipdb.set_trace()
 
     for i, (images, labels) in enumerate(tqdm(train_loader)):
             print("i = ",i)
@@ -280,8 +296,6 @@ def main(random_styles=random_styles):
             labels_ = labels_.float()
             #[16, 1, 768, 768]
 
-            
-            
             # ipdb.set_trace()
             side = labels.size()[2]
             new_side = int(side // opts.div)
@@ -292,10 +306,8 @@ def main(random_styles=random_styles):
             most_list = []
             
             for j in range(lbl_patches.shape[0]):
-                
                 most_list.append(cityscapes.Cityscapes.name(int(torch.mode(torch.flatten(lbl_patches[j,:,:,:])).values)) if torch.mode(torch.flatten(lbl_patches[j,:,:,:])).values != 255 else 255)
             
-
             unique = list(set(most_list))
             ind = []
             for s in unique:
@@ -305,33 +317,44 @@ def main(random_styles=random_styles):
 
             text_target = torch.zeros((len(ind),1024)).type(torch.float32).to(device) # (len(ind),1024) 1024 is the dim of CLIP latent space (RN50)
 
-
+            metadata_bin = []
             for j,k in enumerate(unique):
               
                 if k==255:
                     target = "photo"
                 else:
-                    target =random.choice(random_styles) + ' ' + k
-
-                # prompt를 그냥 단순히 다 합쳐버렸다 -> 진짜 그냥 의미가 없는 짬뽕이다
-                target = compose_text_with_templates(target, imagenet_templates)
-
+                    random_idx = random.randint(0, len(random_styles) - 1)
+                    selected_style = random_styles[random_idx]
+                    target = selected_style + ' ' + k
+                
+                # 24/6/30 - Patch inspection
                 # ipdb.set_trace()
                 # save the target / img / label
                 dir = os.path.join(patch_dir, str(k))
                 os.makedirs(dir, exist_ok=True)
-                img_name = os.path.join(dir, f"{k}_{i}_img.png")
-                label_name = os.path.join(dir, f"{k}_{i}_label.png")
+                img_name = os.path.join(dir, f"{i}_{target}_img.png")
+                label_name = os.path.join(dir, f"{i}_{target}_label.png")
+                cls_style[str(k)][selected_style] += 1   # 통계용
                 show_img(img_patches[ind[j]], img_name)
                 show_label(lbl_patches[ind[j]], label_name)
+
+                # 24/6/30 - Style Metadata
+                metadata = {
+                    "img_path" : img_name,
+                    'label_path' : label_name,
+                    'class' : k,
+                    'style' : selected_style,
+                    'score' : 0
+                }
+                metadata_bin.append(metadata)
+
+                # prompt를 그냥 단순히 다 합쳐버렸다 -> 진짜 그냥 의미가 없는 짬뽕이다
+                target = compose_text_with_templates(target, imagenet_templates)
 
                 tokens = clip.tokenize(target).to(device)
 
                 text_target[j] = clip_model.encode_text(tokens).mean(axis=0, keepdim=True).detach()
                 text_target[j] /= text_target[j].norm(dim=-1, keepdim=True)
-
-
-
 
             #optimize mu and sigma of target features with CLIP
             model_ppin = PPIN(f1.to(device),div=opts.div,ind=ind)
@@ -377,15 +400,19 @@ def main(random_styles=random_styles):
                 elif param.requires_grad and name == 'style_std':
                     learnt_std_f1 = param.data  #(len(ind),C,1,1)
             
-    
+            # ipdb.set_trace()
             for k in range(learnt_mu_f1.shape[0]):
                 learnt_mu_f1_ = torch.from_numpy(learnt_mu_f1[k].detach().cpu().numpy())
                 learnt_std_f1_ = torch.from_numpy(learnt_std_f1[k].detach().cpu().numpy())
 
                 most = most_list[ind[k]]
+                
+                # meta_data와 함께 저장하기
+                stats[str(most)+'_mu'].append((learnt_mu_f1_, metadata_bin[k]))
+                stats[str(most)+'_std'].append((learnt_std_f1_, metadata_bin[k])) 
 
-                stats[str(most)+'_mu'].append(learnt_mu_f1_)
-                stats[str(most)+'_std'].append(learnt_std_f1_)
+                # stats[str(most)+'_mu'].append(learnt_mu_f1_)
+                # stats[str(most)+'_std'].append(learnt_std_f1_)
 
             torch.cuda.empty_cache()
             f1.detach().cpu()
@@ -395,6 +422,8 @@ def main(random_styles=random_styles):
 
     with open(opts.save_path, 'wb') as f:
         pickle.dump(stats, f)
-            
+
+    with open('cls_style.pkl', 'wb') as f:
+        pickle.dump(cls_style, f)
 
 main(random_styles=random_styles)
