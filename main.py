@@ -81,7 +81,7 @@ def get_argparser():
     parser.add_argument("--div", type=int, default=3, help="number of divisions for the image")
     parser.add_argument("--patch_method", type=str, default="default")
     parser.add_argument("--num_layer", type=int, default=0)
-
+    parser.add_argument("--single",  action='store_true', default=False)
     return parser
 
 def validate(model, loader, device, metrics, dataset):

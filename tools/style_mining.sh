@@ -10,4 +10,5 @@ python3 patch_PIN.py  \
     --resize_feat  \
     --save_dir /workspace/ssd0/byeongcheol/DGSS/FAMix/save_dir \
     --save_path /workspace/ssd0/byeongcheol/DGSS/FAMix/save_dir/${DATASET}_${PATCH_SIZE}_${DATE}_${TIME}_saved_params.pkl \
-    --div ${PATCH_SIZE}  
+    --mining_time ${DATE}_${TIME} \
+    --div ${PATCH_SIZE}

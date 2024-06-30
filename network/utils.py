@@ -66,7 +66,6 @@ class _Segmentation(nn.Module):
 
     # Adjust new div   
     def forward(self, x, transfer=False,mix=False,most_list=None,saved_params=None, saved_params_4=None, saved_params_6=None, saved_params_12=None, activation=None,s=0, div=3, mode="default"):
-        
         # ipdb.set_trace()
         input_shape = x.shape[-2:]
         features = {}
@@ -165,7 +164,6 @@ class _Segmentation(nn.Module):
                             cur_r, cur_c = q.get()  # BFS 루프 내에서 로컬 변수를 사용
                             # print(i, j, cur_r, cur_c)  # 디버그 출력문
 
-                            
                             h = cur_r * d2 // div
                             w = cur_c * d3 // div
 
