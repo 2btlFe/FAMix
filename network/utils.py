@@ -6,6 +6,7 @@ import random
 from torch.nn.functional import unfold
 import ipdb
 import queue
+import numpy as np
 
 # class LinearFusion(nn.Module):
     
@@ -172,79 +173,36 @@ class _Segmentation(nn.Module):
                 #print(cnt, div * div)
                 # assert cnt == div * div
 
-            # 24/6/20 - patch fusion stylization - by mlp 
+            # 24/7/1 - patch style matching 
+            
+            most_list = np.array(most_list)
+            style_match = np.zeros_like(most_list)
+
             for j,most in enumerate(most_list):  #len(most_list)=div*div   
                 for k,el in enumerate(most):  #len(most)=B
                     
-
                     if not saved_params[str(el)+'_mu']:
-                        if single:
-                            idx = 0
-                        else:
-                            idx = random.choice([idxx for idxx in range (len(saved_params['255_mu']))])
-                        mu_t = saved_params['255_mu'][idx]
-                        std_t = saved_params['255_std'][idx]
+                        # ipdb.set_trace()
+                        
+                        idx = random.choice([idxx for idxx in range (len(saved_params['255_mu']))])
+                        mu_t = saved_params['255_mu'][idx][0]
+                        std_t = saved_params['255_std'][idx][0]
                     else: 
                         #TODO: Adjust New Sampling Method 
-                        if single:
-                            idx =0
-                        else:
-                            idx = random.choice([idxx for idxx in range (len(saved_params[str(el)+'_mu']))])
-                        
-                        if "fusion" in mode:
-                            mu_t_3 = saved_params[str(el)+'_mu'][idx]
-                            std_t_3 = saved_params[str(el)+'_std'][idx]
-                            mu_t_4 = saved_params_4[str(el)+'_mu'][idx]
-                            std_t_4 = saved_params_4[str(el)+'_std'][idx]
-                            mu_t_6 = saved_params_6[str(el)+'_mu'][idx]
-                            std_t_6 = saved_params_6[str(el)+'_std'][idx]
-                            
-                            # ipdb.set_trace()
-                            mu_t = torch.stack([mu_t_3, mu_t_4, mu_t_6], dim=0)  # [3, 256, 1, 1]
-                            std_t = torch.stack([std_t_3, std_t_4, std_t_6], dim=0)  #[3, 256, 1, 1]
-                            
-                            # res = self.mlp_fusion(input)
-                            # mu_t, std_t = res[0], res[1]
-                            # ipdb.set_trace()
-                        else:    
-                            mu_t = saved_params[str(el)+'_mu'][idx]
-                            std_t = saved_params[str(el)+'_std'][idx]
-                    
-                    if "fusion" in mode:                    
                         # ipdb.set_trace()
-                        mu_bin[k, j, :] = mu_t      #[8, div*div, 3, 256, 1, 1]
-                        std_bin[k, j, :] = std_t    #[8, div*div, 3, 256, 1, 1]
-                    else:
-                        mu_t_f1[k,:,h:h+features['low_level'].shape[2]//div,w:w+features['low_level'].shape[3]//div]  = mu_t.expand((256,d2//div,d3//div))
-                        std_t_f1[k,:,h:h+d2//div,w:w+d3//div] = std_t.expand((256,d2//div,d3//div))
+                        idx = random.choice([idxx for idxx in range (len(saved_params[str(el)+'_mu']))])
+                        mu_t = saved_params[str(el)+'_mu'][idx][0]
+                        std_t = saved_params[str(el)+'_std'][idx][0]
+
+                    style_match[j,k] = idx
+
+                    mu_t_f1[k,:,h:h+features['low_level'].shape[2]//div,w:w+features['low_level'].shape[3]//div]  = mu_t.expand((256,d2//div,d3//div))
+                    std_t_f1[k,:,h:h+d2//div,w:w+d3//div] = std_t.expand((256,d2//div,d3//div))
+
                 w+=d2//div
                 if (j+1)%div==0:
                     w=0
                     h+=d3//div
-
-
-            if "fusion" in mode:
-                # 1. 모두 다 Fusion
-                # ipdb.set_trace()
-                param = torch.cat([mu_bin, std_bin], dim=2).to('cuda') # [8, div*div, 6, 256, 1, 1]
-                res = self.mlp_fusion(param)   # [8, div*div, 2, 256, 1, 1]
-
-                num_patches = div*div
-                for j in range(num_patches):
-                    # ipdb.set_trace()
-                    h=(j//div)*d3//div
-                    w=(j%div)*d2//div
-                    
-                    mu_t_f1[:,:,h:h+d2//div,w:w+d3//div] = res[:, j, 0].expand((8, 256, d2//div, d3//div))
-                    std_t_f1[:,:,h:h+d2//div,w:w+d3//div] = res[:, j, 1].expand((8, 256, d2//div, d3//div))
-
-                # 2. mu, std 각각 Fusion
-                    
-                # 3. MLP 쓰기 
-                    
-                # 4. Adversarial
-                    
-
 
             if not mix:
                 features['low_level'] = (std_t_f1.to('cuda') * features_low_norm + mu_t_f1.to('cuda'))
@@ -262,4 +220,110 @@ class _Segmentation(nn.Module):
     
         x = self.classifier(features)
         output = F.interpolate(x, size=input_shape, mode='bilinear', align_corners=False)
+        
+        if mode == "analysis":
+            return output, features, style_match
+
         return output, features
+    
+
+
+
+
+
+
+
+
+
+
+        #     # 24/6/20 - patch fusion stylization - by mlp 
+        #     for j,most in enumerate(most_list):  #len(most_list)=div*div   
+        #         for k,el in enumerate(most):  #len(most)=B
+                    
+
+        #             if not saved_params[str(el)+'_mu']:
+        #                 if single:
+        #                     idx = 0
+        #                 else:
+        #                     idx = random.choice([idxx for idxx in range (len(saved_params['255_mu']))])
+        #                 mu_t = saved_params['255_mu'][idx]
+        #                 std_t = saved_params['255_std'][idx]
+        #             else: 
+        #                 #TODO: Adjust New Sampling Method 
+        #                 if single:
+        #                     idx =0
+        #                 else:
+        #                     idx = random.choice([idxx for idxx in range (len(saved_params[str(el)+'_mu']))])
+                        
+        #                 if "fusion" in mode:
+        #                     mu_t_3 = saved_params[str(el)+'_mu'][idx]
+        #                     std_t_3 = saved_params[str(el)+'_std'][idx]
+        #                     mu_t_4 = saved_params_4[str(el)+'_mu'][idx]
+        #                     std_t_4 = saved_params_4[str(el)+'_std'][idx]
+        #                     mu_t_6 = saved_params_6[str(el)+'_mu'][idx]
+        #                     std_t_6 = saved_params_6[str(el)+'_std'][idx]
+                            
+        #                     # ipdb.set_trace()
+        #                     mu_t = torch.stack([mu_t_3, mu_t_4, mu_t_6], dim=0)  # [3, 256, 1, 1]
+        #                     std_t = torch.stack([std_t_3, std_t_4, std_t_6], dim=0)  #[3, 256, 1, 1]
+                            
+        #                     # res = self.mlp_fusion(input)
+        #                     # mu_t, std_t = res[0], res[1]
+        #                     # ipdb.set_trace()
+        #                 else:    
+        #                     mu_t = saved_params[str(el)+'_mu'][idx]
+        #                     std_t = saved_params[str(el)+'_std'][idx]
+                    
+        #             if "fusion" in mode:                    
+        #                 # ipdb.set_trace()
+        #                 mu_bin[k, j, :] = mu_t      #[8, div*div, 3, 256, 1, 1]
+        #                 std_bin[k, j, :] = std_t    #[8, div*div, 3, 256, 1, 1]
+        #             else:
+        #                 mu_t_f1[k,:,h:h+features['low_level'].shape[2]//div,w:w+features['low_level'].shape[3]//div]  = mu_t.expand((256,d2//div,d3//div))
+        #                 std_t_f1[k,:,h:h+d2//div,w:w+d3//div] = std_t.expand((256,d2//div,d3//div))
+        #         w+=d2//div
+        #         if (j+1)%div==0:
+        #             w=0
+        #             h+=d3//div
+
+
+        #     if "fusion" in mode:
+        #         # 1. 모두 다 Fusion
+        #         # ipdb.set_trace()
+        #         param = torch.cat([mu_bin, std_bin], dim=2).to('cuda') # [8, div*div, 6, 256, 1, 1]
+        #         res = self.mlp_fusion(param)   # [8, div*div, 2, 256, 1, 1]
+
+        #         num_patches = div*div
+        #         for j in range(num_patches):
+        #             # ipdb.set_trace()
+        #             h=(j//div)*d3//div
+        #             w=(j%div)*d2//div
+                    
+        #             mu_t_f1[:,:,h:h+d2//div,w:w+d3//div] = res[:, j, 0].expand((8, 256, d2//div, d3//div))
+        #             std_t_f1[:,:,h:h+d2//div,w:w+d3//div] = res[:, j, 1].expand((8, 256, d2//div, d3//div))
+
+        #         # 2. mu, std 각각 Fusion
+                    
+        #         # 3. MLP 쓰기 
+                    
+        #         # 4. Adversarial
+                    
+
+
+        #     if not mix:
+        #         features['low_level'] = (std_t_f1.to('cuda') * features_low_norm + mu_t_f1.to('cuda'))
+        #     else:
+
+        #         mu_mix = s * means_orig.to('cuda') + (1-s) *  mu_t_f1.to('cuda')
+        #         std_mix = s * stds_orig.to('cuda') + (1-s) *  std_t_f1.to('cuda')
+        #         # Mix up
+        #         features['low_level'] = (std_mix.expand(self.size) * features_low_norm + mu_mix.expand(self.size))
+        #     features['low_level'] = activation(features['low_level'])
+           
+        # features['out'] = self.backbone(features['low_level'],trunc1=True,trunc2=False,
+                                        
+        #     trunc3=False,trunc4=False,get1=False,get2=False,get3=False,get4=True)
+    
+        # x = self.classifier(features)
+        # output = F.interpolate(x, size=input_shape, mode='bilinear', align_corners=False)
+        # return output, features

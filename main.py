@@ -23,6 +23,54 @@ import logging
 from torch.utils.tensorboard import SummaryWriter
 
 
+def calculate_patch_loss(outputs, lbl_patches, new_side, most_list, style_matches, loaded_dict_patches, writer, cur_itrs):
+    """
+    Calculate the loss for each patches
+    outputs: [B, 19, H, W]
+    lbl_patches: [div*div, B, 1, H/div, W/div]
+    new_side: [H/div]
+    most_list: [div*div, B]
+    style_matches: [div*div, B]
+    loaded_dict_patches: dict
+    writer: SummaryWriter
+    cur_itrs: int
+    """
+    # ipdb.set_trace()
+    output_patches = unfold(outputs, kernel_size=new_side, stride=new_side).permute(-1,0,1)
+    output_patches = output_patches.reshape(output_patches.shape[0],output_patches.shape[1],19,new_side,new_side) #### (div*div, B, 1, H/div, W/div)
+    
+    for j in range(len(output_patches)): ### iterate on dim 0 (div*div)
+        for k in range(output_patches[0].shape[0]): # batch
+            patch = output_patches[j][k].unsqueeze(0)       #[1, 19, H/div, W/div]
+            label = lbl_patches[j][k].cuda()                #[1, 1, H/div, W/div]
+        
+            loss = nn.CrossEntropyLoss(ignore_index=255, reduction='mean',label_smoothing=0.1)
+            
+            loss_patch = loss(patch, label)
+            patch_style_idx = int(style_matches[j][k])
+
+            # ipdb.set_trace()
+            if most_list[j][k] == 255:
+                most_list[j][k] = '255'
+                
+            metadata = loaded_dict_patches[most_list[j][k]+'_mu'][patch_style_idx][1]
+            style = metadata['style']
+            
+            if metadata['score'] == 0:
+                loaded_dict_patches[most_list[j][k]+'_mu'][patch_style_idx][1]['score'] = loss_patch.item()
+                loaded_dict_patches[most_list[j][k]+'_std'][patch_style_idx][1]['score'] = loss_patch.item()
+            else:    
+                loaded_dict_patches[most_list[j][k]+'_mu'][patch_style_idx][1]['score'] = 0.9 * loaded_dict_patches[most_list[j][k]+'_mu'][patch_style_idx][1]['score'] + 0.1 * loss_patch.item()
+                loaded_dict_patches[most_list[j][k]+'_std'][patch_style_idx][1]['score'] = 0.9 * loaded_dict_patches[most_list[j][k]+'_std'][patch_style_idx][1]['score'] + 0.1 * loss_patch.item()
+
+            # ipdb.set_trace()
+
+            writer.add_scalar(f"loss_patch_{most_list[j][k]}_{style}_{patch_style_idx}", loss_patch, cur_itrs)
+
+
+
+
+
 def get_argparser():
     parser = argparse.ArgumentParser()
 
@@ -244,17 +292,20 @@ def main():
         log_dir = f"{opts.ckpts_path}/training_logs"
         writer = SummaryWriter(log_dir=log_dir)
 
-        loaded_dict_patches_list = []
+        
+        if opts.patch_method == "default" or opts.patch_method == "analysis":
+            with open(opts.path_for_stats, 'rb') as f:
+                loaded_dict_patches = pickle.load(f)
+        else:
+            loaded_dict_patches_list = []
 
-        with open(opts.path_for_3stats, 'rb') as f:
-            loaded_dict_patches_list.append(pickle.load(f))
-        with open(opts.path_for_4stats, 'rb') as f:
-            loaded_dict_patches_list.append(pickle.load(f))
-        with open(opts.path_for_6stats, 'rb') as f:
-            loaded_dict_patches_list.append(pickle.load(f))
-        with open(opts.path_for_stats, 'rb') as f:
-            loaded_dict_patches = pickle.load(f)
-
+            with open(opts.path_for_3stats, 'rb') as f:
+                loaded_dict_patches_list.append(pickle.load(f))
+            with open(opts.path_for_4stats, 'rb') as f:
+                loaded_dict_patches_list.append(pickle.load(f))
+            with open(opts.path_for_6stats, 'rb') as f:
+                loaded_dict_patches_list.append(pickle.load(f))
+            
         if opts.patch_method == "fusion":
             loaded_dict_patches = loaded_dict_patches_list[0]
 
@@ -396,15 +447,24 @@ def main():
             beta_dist = torch.distributions.beta.Beta(0.1, 0.1)
             s = beta_dist.sample((opts.batch_size, 256, 1, 1)).to('cuda')
             
-            outputs,features = model(images, transfer=opts.transfer,mix=True,most_list=most_list,saved_params=loaded_dict_patches, saved_params_4=loaded_dict_patches_list[1], saved_params_6=loaded_dict_patches_list[2], activation=relu,s=s, div=div, mode=opts.patch_method, single=opts.single)
-
-            # ipdb.set_trace()
+            #TODO: Patch별로 idx 기록해둬서 output 빼고 나중에 loss 계산되었을 때 확인하기
+            if opts.patch_method == "default":
+                outputs,features = model(images, transfer=opts.transfer,mix=True,most_list=most_list,saved_params=loaded_dict_patches, activation=relu,s=s, div=div, mode=opts.patch_method)
+            elif opts.patch_method == "analysis":
+                outputs, features, style_matches = model(images, transfer=opts.transfer,mix=True,most_list=most_list,saved_params=loaded_dict_patches, activation=relu,s=s, div=div, mode=opts.patch_method)
+            else:
+                outputs,features = model(images, transfer=opts.transfer,mix=True,most_list=most_list,saved_params=loaded_dict_patches, saved_params_4=loaded_dict_patches_list[1], saved_params_6=loaded_dict_patches_list[2], activation=relu,s=s, div=div, mode=opts.patch_method)
 
             ##############################################################################################################################################
             labels = labels.to(device, dtype=torch.long)
             loss = criterion(outputs, labels)
             loss.backward()
             
+            # Calculate the loss for each patches
+            # ipdb.set_trace()
+            with torch.no_grad():
+                calculate_patch_loss(outputs, lbl_patches, new_side, most_list, style_matches, loaded_dict_patches, writer, cur_itrs)
+
             # ipdb.set_trace()
             
             optimizer.step()
@@ -452,6 +512,7 @@ def main():
             scheduler.step()
 
             if cur_itrs >= opts.total_itrs:
+                pickle.save(loaded_dict_patches, f"{opts.ckpts_path}/final_stats.pkl")
                 return
             
 
