@@ -3,6 +3,7 @@ from .backbone import resnet_clip
 import os
 import torch
 from .utils import MLPFusion
+import ipdb
 
 def deeplabv3plus_resnet_clip(num_classes=19,BB = "RN50",OS=16, mode="default", num_layer=0):
     

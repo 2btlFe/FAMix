@@ -208,7 +208,7 @@ def main():
     # else:
     #     fusion = False
 
-    model = network.modeling.__dict__['deeplabv3plus_resnet_clip'](num_classes=opts.num_classes, BB= opts.BB, OS=opts.OS, mode=opts.patch_method, num_layer=opts.num_layer)
+    model = network.modeling.__dict__['deeplabv3plus_resnet_clip'](num_classes=opts.num_classes, BB=opts.BB, OS=opts.OS, mode=opts.patch_method, num_layer=opts.num_layer)
     model.backbone.attnpool = nn.Identity()
 
     # freeze layers
@@ -258,7 +258,7 @@ def main():
     cur_epochs = 0
 
     if opts.ckpt is not None and os.path.isfile(opts.ckpt):
-        
+    
         checkpoint = torch.load(opts.ckpt, map_location=torch.device('cpu'))
         model.load_state_dict(checkpoint["model_state"])
         model.to(device)

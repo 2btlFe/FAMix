@@ -189,7 +189,6 @@ def get_argparser():
 
 def main(random_styles=random_styles):
 
-
     opts = get_argparser().parse_args()
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     os.environ['CUDA_VISIBLE_DEVICES'] = opts.gpu_id
@@ -310,6 +309,7 @@ def main(random_styles=random_styles):
             
             unique = list(set(most_list))
             ind = []
+            
             for s in unique:
                 ind.append(most_list.index(s)) #list of indices for first occurence of each unique element
                 
@@ -375,11 +375,18 @@ def main(random_styles=random_styles):
                 optimizer.zero_grad()
 
                 patches_low_hal_ = model_ppin() # (len(ind),C,H/div,W/div)               
-                patches_low_hal= t1(patches_low_hal_)
+                patches_low_hal= t1(patches_low_hal_)   #[56, 56] 으로 AdaptiveAvgPool2d 적용한다
                 
                 #target_features (hallucinated)
+
+                #[len(ind), 256, H/div, W/div]
+                # ipdb.set_trace()
                 target_features_from_low = model.backbone(patches_low_hal.to(device),trunc0=False,trunc1=True,trunc2=False,
                 trunc3=False,trunc4=False,get0=False,get1=False,get2=False,get3=False,get4=False)
+                
+                # [len(ind), 1024]
+                # ipdb.set_trace()
+
                 target_features_from_low /= target_features_from_low.norm(dim=-1, keepdim=True).clone().detach()
 
                 loss = (1- torch.cosine_similarity(text_target, target_features_from_low, dim=1)).mean()
