@@ -6,3 +6,4 @@ runs/
 *.pyc
 *.png
 *.log
+*event.out*
