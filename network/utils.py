@@ -7,6 +7,90 @@ from torch.nn.functional import unfold
 import ipdb
 import queue
 import numpy as np
+from datasets import Cityscapes
+from PIL import Image
+
+def fine_dominant_class(lbl_patch):
+    '''
+    lbl_patch: [1, H, W]
+    '''
+
+    _, h, w = lbl_patch.shape
+    most = torch.mode(torch.flatten(lbl_patch)).values
+    most_np = most.item()
+
+    if most_np == 255:
+        return 255
+    else:
+        # 중앙과 중앙 근처의 4개 요소를 배열로 만듦
+        central_elements = np.array([
+            lbl_patch[0, h//2, w//2],
+            lbl_patch[0, h//2 - 1, w//2],
+            lbl_patch[0, h//2, w//2 - 1],
+            lbl_patch[0, h//2 - 1, w//2 - 1]
+        ])
+
+        # 모든 요소가 most와 같은지 확인
+        if not np.all(central_elements == most_np):
+            return -1 
+        
+        cnt = 0
+        # lbl_patch의 가장자리가 모두 most로 되어 있는지 여부를 확인
+        top_edge = np.all(np.array(lbl_patch[0, 0, :]) == most_np)
+        bottom_edge = np.all(np.array(lbl_patch[0, h-1, :]) == most_np)
+        left_edge = np.all(np.array(lbl_patch[0, :, 0]) == most_np)
+        right_edge = np.all(np.array(lbl_patch[0, :, w-1]) == most_np)
+
+        # 조건이 참인 경우 cnt 증가
+        cnt = sum([top_edge, bottom_edge, left_edge, right_edge])
+
+        if cnt >= 2:
+            return -1
+        else:
+            return most
+
+def show_img(x, img_name):
+    x = x.detach().cpu().numpy()
+    x = np.transpose(x, (1, 2, 0))
+    x = (x - x.min()) / (x.max() - x.min())
+    img = Image.fromarray((x * 255).astype(np.uint8))
+    img.save(img_name)
+
+def dc_patch_style_mining(h, w, side, feature, img, label, batch, patch_meta, most_list, means_orig=None, stds_orig=None, type='Train'):
+
+    # Check Dominant Existence 
+    lbl_patch = label[batch, :, h:h+side, w:w+side] #[1, side, side]
+    
+    show_img(img[batch, :, h:h+side, w:w+side], f'img_{type}.png')
+
+    dominant_cls = fine_dominant_class(lbl_patch)   
+    
+    if dominant_cls == -1 and side > 24:        
+        dc_patch_style_mining(h, w, side//2, feature, img, label, batch, patch_meta, most_list, means_orig, stds_orig, type)
+        dc_patch_style_mining(h+side//2, w, side//2, feature, img, label, batch, patch_meta, most_list, means_orig, stds_orig, type)
+        dc_patch_style_mining(h, w+side//2, side//2, feature, img, label, batch, patch_meta, most_list, means_orig, stds_orig, type)
+        dc_patch_style_mining(h+side//2, w+side//2, side//2, feature, img, label, batch, patch_meta, most_list, means_orig, stds_orig, type)
+    else:
+        if dominant_cls == 255 or side <= 24:
+            # ipdb.set_trace()
+            most_list.append(255)
+        else:
+            most_list.append(Cityscapes.name(int(dominant_cls)))
+
+        most = most_list[-1]
+
+        # Calculate mean and std
+        mean, std = calc_mean_std(feature[batch, :, h:h+side, w:w+side].unsqueeze(0))
+        mean = mean.squeeze(0)
+        std = std.squeeze(0)
+
+        # ipdb.set_trace()
+        feature[batch, :, h:h+side, w:w+side] = (feature[batch, :, h:h+side, w:w+side] - mean) / std
+
+        if means_orig is not None:
+            means_orig[batch, :, h:h+side, w:w+side] = mean.expand((256, side, side))
+            stds_orig[batch, :, h:h+side, w:w+side] = std.expand((256, side, side))
+        patch_meta.append((batch, h, w, side, most))
 
 # class LinearFusion(nn.Module):
     
@@ -65,7 +149,7 @@ class _Segmentation(nn.Module):
 
 
     # Adjust new div   
-    def forward(self, x, transfer=False,mix=False,most_list=None,saved_params=None, saved_params_4=None, saved_params_6=None, saved_params_12=None, activation=None,s=0, div=3, mode="default"):
+    def forward(self, x, transfer=False,mix=False,most_list=None,saved_params=None, saved_params_4=None, saved_params_6=None, saved_params_12=None, activation=None,s=0, div=3, mode="default", labels=None):
         # ipdb.set_trace()
         input_shape = x.shape[-2:]
         features = {}
@@ -74,7 +158,6 @@ class _Segmentation(nn.Module):
         d2 ,d3 = features['low_level'].shape[2], features['low_level'].shape[3]
 
         if transfer:
-            mean, std = calc_mean_std(features['low_level'])
             self.size = features['low_level'].size()
 
             mu_t_f1 = torch.zeros([8,256,d2,d3])
@@ -83,26 +166,17 @@ class _Segmentation(nn.Module):
             h=0
             w=0
 
-            new_kernel_size = d2//div
-
-            self.patches = unfold(features['low_level'], kernel_size=new_kernel_size, stride=new_kernel_size).permute(-1,0,1)
-            self.patches = self.patches.reshape(self.patches.shape[0],self.patches.shape[1],256,d2//div,d3//div)
-
             means_orig = torch.zeros([8,256,d2,d3])
             stds_orig = torch.zeros([8,256,d2,d3])
 
-            for i in range(div*div):
-                mean , std = calc_mean_std(self.patches[i])
-            
-                means_orig[:,:,h:h+d2//div,w:w+d3//div] = mean.expand((8,256,d2//div,d3//div))
-                stds_orig[:,:,h:h+d2//div,w:w+d3//div] =std.expand((8,256,d2//div,d3//div))
-                w+=d2//div
-                if (i+1)%div == 0 :
-                    w=0
-                    h+=d3//div
+            # 24/7/8 - Divide and Conquer Patch Style Mining
+            patch_meta = []
+            most_list = []
 
-                self.patches[i] = (self.patches[i] - mean.expand(self.patches[i].size()) ) / std.expand(self.patches[i].size())
-            features_low_norm = torch.cat([torch.cat([self.patches[div*i+j] for i in range(div)],dim=2) for j in range(div)],dim=3)
+            for b in range(self.size[0]):
+                dc_patch_style_mining(0, 0, d2, features['low_level'], x, labels, b, patch_meta, most_list ,means_orig, stds_orig, type='Train')
+                
+            features_low_norm = features['low_level']
             
             h=0
             w=0
@@ -164,35 +238,26 @@ class _Segmentation(nn.Module):
                 # assert cnt == div * div
 
             # 24/7/1 - patch style matching 
-            
-            most_list = np.array(most_list)
-            style_match = np.zeros_like(most_list)
+            for most_idx in range(len(most_list)):  
+                el = most_list[most_idx]
+                k, h, w, side, dominant_cls = patch_meta[most_idx]
 
-            for j,most in enumerate(most_list):  #len(most_list)=div*div   
-                for k,el in enumerate(most):  #len(most)=B
+                if not saved_params[str(el)+'_mu']:
                     
-                    if not saved_params[str(el)+'_mu']:
-                        # ipdb.set_trace()
-                        
-                        idx = random.choice([idxx for idxx in range (len(saved_params['255_mu']))])
-                        mu_t = saved_params['255_mu'][idx][0]
-                        std_t = saved_params['255_std'][idx][0]
-                    else: 
-                        #TODO: Adjust New Sampling Method 
-                        # ipdb.set_trace()
-                        idx = random.choice([idxx for idxx in range (len(saved_params[str(el)+'_mu']))])
-                        mu_t = saved_params[str(el)+'_mu'][idx][0]
-                        std_t = saved_params[str(el)+'_std'][idx][0]
+                    idx = random.choice([idxx for idxx in range (len(saved_params['255_mu']))])
+                    mu_t = saved_params['255_mu'][idx][0]
+                    std_t = saved_params['255_std'][idx][0]
+                else: 
+                    #TODO: Adjust New Sampling Method 
+                    # ipdb.set_trace()
+                    idx = random.choice([idxx for idxx in range (len(saved_params[str(el)+'_mu']))])
+                    mu_t = saved_params[str(el)+'_mu'][idx][0]
+                    std_t = saved_params[str(el)+'_std'][idx][0]
 
-                    style_match[j,k] = idx
+                patch_meta[most_idx] = (k, h, w, side, dominant_cls, idx)
 
-                    mu_t_f1[k,:,h:h+features['low_level'].shape[2]//div,w:w+features['low_level'].shape[3]//div]  = mu_t.expand((256,d2//div,d3//div))
-                    std_t_f1[k,:,h:h+d2//div,w:w+d3//div] = std_t.expand((256,d2//div,d3//div))
-
-                w+=d2//div
-                if (j+1)%div==0:
-                    w=0
-                    h+=d3//div
+                mu_t_f1[k,:,h:h+side,w:w+side]  = mu_t.expand((256,side,side))
+                std_t_f1[k,:,h:h+side,w:w+side] = std_t.expand((256,side,side))
 
             if not mix:
                 features['low_level'] = (std_t_f1.to('cuda') * features_low_norm + mu_t_f1.to('cuda'))
@@ -212,7 +277,7 @@ class _Segmentation(nn.Module):
         output = F.interpolate(x, size=input_shape, mode='bilinear', align_corners=False)
         
         if mode == "analysis":
-            return output, features, style_match
+            return output, features, patch_meta
 
         return output, features
     

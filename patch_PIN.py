@@ -12,7 +12,8 @@ from utils.get_dataset import get_dataset
 from torch.utils import data
 from utils.freeze import freeze_all
 from torch.nn.functional import unfold
-from utils.PPIN import PPIN 
+from utils.PPIN import PPIN, PPIN_DC
+from network.utils import dc_patch_style_mining
 import ipdb
 from tqdm import tqdm
 from PIL import Image
@@ -24,7 +25,6 @@ from torch.utils.tensorboard import SummaryWriter
 
 
 def show_img(x, img_name):
-    
     x = x.detach().cpu().numpy()
     x = np.transpose(x, (1, 2, 0))
     x = (x - x.min()) / (x.max() - x.min())
@@ -182,8 +182,8 @@ def get_argparser():
     parser.add_argument("--random_seed", type=int, default=1, help="random seed (default: 1)")
     #data augmentation
     parser.add_argument("--data_aug", action='store_true',default=False)
-    parser.add_argument("--patch_size", type=int, default=3, help="patch_size")
-    
+    parser.add_argument("--patch_size", type=int, default=3, help="patch_size") 
+    parser.add_argument("--divide_conquer", action='store_true',default=False, help="divide and conquer")
 
     return parser
 
@@ -218,7 +218,7 @@ def main(random_styles=random_styles):
     if not os.path.isdir(opts.save_dir):
         os.mkdir(opts.save_dir)
 
-    if opts.resize_feat:
+    if opts.resize_feat == True and opts.divide_conquer == False:
         t1 = nn.AdaptiveAvgPool2d((56,56))
     else:
         t1 = lambda x:x
@@ -269,8 +269,6 @@ def main(random_styles=random_styles):
     }
 
     # time 
-
-
     patch_dir = f"patches_{opts.div}_{opts.mining_time}"
     os.makedirs(patch_dir, exist_ok=True)
 
@@ -296,17 +294,25 @@ def main(random_styles=random_styles):
             labels_ = labels_.float()
             #[16, 1, 768, 768]
 
-            # ipdb.set_trace()
-            side = labels.size()[2]
+            B, side, _ = labels.size()
             new_side = int(side // opts.div)
 
-            img_patches = unfold(images, kernel_size=new_side, stride=new_side).permute(-1,0,1).reshape(-1,3,new_side,new_side) ## (div*div*B,3,H/div,W/div)  - div is 3
-            lbl_patches = unfold(labels_, kernel_size=new_side, stride=new_side).permute(-1,0,1).reshape(-1,1,new_side,new_side) ## (div*div*B,1,H/div,W/div)  - div is 3
+            # 24/07/08 Divide-Conquer Patch Mining / Adversarial Style Mining 
+            if opts.divide_conquer: 
+                patch_meta = []
+                most_list = []
+                
+                for b in range(B):
+                    dc_patch_style_mining(0, 0, side, f1, images, labels_, b, patch_meta, most_list, type='style_mining')
 
-            most_list = []
-            
-            for j in range(lbl_patches.shape[0]):
-                most_list.append(cityscapes.Cityscapes.name(int(torch.mode(torch.flatten(lbl_patches[j,:,:,:])).values)) if torch.mode(torch.flatten(lbl_patches[j,:,:,:])).values != 255 else 255)
+            else:   # default
+                # 2 By 2
+                img_patches = unfold(images, kernel_size=new_side, stride=new_side).permute(-1,0,1).reshape(-1,3,new_side,new_side) ## (div*div*B,3,H/div,W/div)  - div is 3
+                lbl_patches = unfold(labels_, kernel_size=new_side, stride=new_side).permute(-1,0,1).reshape(-1,1,new_side,new_side) ## (div*div*B,1,H/div,W/div)  - div is 3
+                most_list = []
+                
+                for j in range(lbl_patches.shape[0]):    
+                    most_list.append(cityscapes.Cityscapes.name(int(torch.mode(torch.flatten(lbl_patches[j,:,:,:])).values)) if torch.mode(torch.flatten(lbl_patches[j,:,:,:])).values != 255 else 255)
             
             unique = list(set(most_list))
             ind = []
@@ -318,8 +324,8 @@ def main(random_styles=random_styles):
             text_target = torch.zeros((len(ind),1024)).type(torch.float32).to(device) # (len(ind),1024) 1024 is the dim of CLIP latent space (RN50)
 
             metadata_bin = []
+            
             for j,k in enumerate(unique):
-              
                 if k==255:
                     target = "photo"
                 else:
@@ -335,8 +341,17 @@ def main(random_styles=random_styles):
                 img_name = os.path.join(dir, f"{i}_{target}_img.png")
                 label_name = os.path.join(dir, f"{i}_{target}_label.png")
                 cls_style[str(k)][selected_style] += 1   # 통계용
-                show_img(img_patches[ind[j]], img_name)
-                show_label(lbl_patches[ind[j]], label_name)
+                
+                if opts.divide_conquer:
+                    batch, h, w, side, dominant_cls = patch_meta[ind[j]]
+                    image_patch = images[batch, :, h:h+side, w:w+side]
+                    label_patch = labels[batch, h:h+side, w:w+side]
+                    show_img(image_patch, img_name)
+                    show_label(label_patch, label_name)
+
+                else: 
+                    show_img(img_patches[ind[j]], img_name)
+                    show_label(lbl_patches[ind[j]], label_name)
 
                 # 24/6/30 - Style Metadata
                 metadata = {
@@ -356,9 +371,16 @@ def main(random_styles=random_styles):
                 text_target[j] = clip_model.encode_text(tokens).mean(axis=0, keepdim=True).detach()
                 text_target[j] /= text_target[j].norm(dim=-1, keepdim=True)
 
+            # ipdb.set_trace()
             #optimize mu and sigma of target features with CLIP
-            model_ppin = PPIN(f1.to(device),div=opts.div,ind=ind)
-           
+            if opts.divide_conquer:
+                patch_meta = np.array(patch_meta)
+                ind = np.array(ind)
+                model_ppin = PPIN_DC(content_feat=f1.to(device), patch_meta=patch_meta[ind])
+            else:
+                model_ppin = PPIN(f1.to(device),div=opts.div,ind=ind)
+
+            # ipdb.set_trace()
             model_ppin.to(device)
 
             optimizer = torch.optim.SGD(params=[
@@ -367,23 +389,22 @@ def main(random_styles=random_styles):
             
             loss1 = 0
             while cur_itrs<opts.total_it:
-                
                 cur_itrs += 1
                 if cur_itrs %100==0:
                     print(cur_itrs)
 
                 optimizer.zero_grad()
 
-                patches_low_hal_ = model_ppin() # (len(ind),C,H/div,W/div)               
+                patches_low_hal_ = model_ppin() # (len(patch_meta),C,side,side)               
                 patches_low_hal= t1(patches_low_hal_)
                 
                 #target_features (hallucinated)
+                # ipdb.set_trace()
                 target_features_from_low = model.backbone(patches_low_hal.to(device),trunc0=False,trunc1=True,trunc2=False,
                 trunc3=False,trunc4=False,get0=False,get1=False,get2=False,get3=False,get4=False)
                 target_features_from_low /= target_features_from_low.norm(dim=-1, keepdim=True).clone().detach()
 
                 loss = (1- torch.cosine_similarity(text_target, target_features_from_low, dim=1)).mean()
-
 
                 writer.add_scalar("loss"+str(i),loss,cur_itrs)
 

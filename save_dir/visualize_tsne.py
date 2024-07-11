@@ -8,6 +8,100 @@ from matplotlib.lines import Line2D
 import seaborn as sns
 import argparse
 import ipdb
+import clip
+
+# def compose_text_with_templates(text: str, templates) -> list:
+#     return [template.format(text) for template in templates]
+
+# imagenet_templates = [
+#     'a bad photo of a {}.',
+#     'a photo of many {}.',
+#     'a sculpture of a {}.',
+#     'a photo of the hard to see {}.',
+#     'a low resolution photo of the {}.',
+#     'a rendering of a {}.',
+#     'graffiti of a {}.',
+#     'a bad photo of the {}.',
+#     'a cropped photo of the {}.',
+#     'a tattoo of a {}.',
+#     'the embroidered {}.',
+#     'a photo of a hard to see {}.',
+#     'a bright photo of a {}.',
+#     'a photo of a clean {}.',
+#     'a photo of a dirty {}.',
+#     'a dark photo of the {}.',
+#     'a drawing of a {}.',
+#     'a photo of my {}.',
+#     'the plastic {}.',
+#     'a photo of the cool {}.',
+#     'a close-up photo of a {}.',
+#     'a black and white photo of the {}.',
+#     'a painting of the {}.',
+#     'a painting of a {}.',
+#     'a pixelated photo of the {}.',
+#     'a sculpture of the {}.',
+#     'a bright photo of the {}.',
+#     'a cropped photo of a {}.',
+#     'a plastic {}.',
+#     'a photo of the dirty {}.',
+#     'a jpeg corrupted photo of a {}.',
+#     'a blurry photo of the {}.',
+#     'a photo of the {}.',
+#     'a good photo of the {}.',
+#     'a rendering of the {}.',
+#     'a {} in a video game.',
+#     'a photo of one {}.',
+#     'a doodle of a {}.',
+#     'a close-up photo of the {}.',
+#     'a photo of a {}.',
+#     'the origami {}.',
+#     'the {} in a video game.',
+#     'a sketch of a {}.',
+#     'a doodle of the {}.',
+#     'a origami {}.',
+#     'a low resolution photo of a {}.',
+#     'the toy {}.',
+#     'a rendition of the {}.',
+#     'a photo of the clean {}.',
+#     'a photo of a large {}.',
+#     'a rendition of a {}.',
+#     'a photo of a nice {}.',
+#     'a photo of a weird {}.',
+#     'a blurry photo of a {}.',
+#     'a cartoon {}.',
+#     'art of a {}.',
+#     'a sketch of the {}.',
+#     'a embroidered {}.',
+#     'a pixelated photo of a {}.',
+#     'itap of the {}.',
+#     'a jpeg corrupted photo of the {}.',
+#     'a good photo of a {}.',
+#     'a plushie {}.',
+#     'a photo of the nice {}.',
+#     'a photo of the small {}.',
+#     'a photo of the weird {}.',
+#     'the cartoon {}.',
+#     'art of the {}.',
+#     'a drawing of the {}.',
+#     'a photo of the large {}.',
+#     'a black and white photo of a {}.',
+#     'the plushie {}.',
+#     'a dark photo of a {}.',
+#     'itap of a {}.',
+#     'graffiti of the {}.',
+#     'a toy {}.',
+#     'itap of my {}.',
+#     'a photo of a cool {}.',
+#     'a photo of a small {}.',
+#     'a tattoo of the {}.',
+# ]
+
+# def clip_gen(target):
+#     tokens = clip.tokenize(target).to(device)
+#     text_target = clip_model.encode_text(tokens).mean(axis=0, keepdim=True).detach()
+#     text_target /= text_target.norm(dim=-1, keepdim=True)
+
+#     return text_target
 
 if __name__ == "__main__":
     
@@ -15,9 +109,14 @@ if __name__ == "__main__":
     args.add_argument("--className", type=str, default="road")
     args = args.parse_args()
 
-    param_root3 = "/workspace/ssd0/byeongcheol/DGSS/FAMix/save_dir/gta5_3_saved_params2.pkl"
-    param_root4 = "/workspace/ssd0/byeongcheol/DGSS/FAMix/save_dir/gta5_4_saved_params2.pkl"
-    param_root6 = "/workspace/ssd0/byeongcheol/DGSS/FAMix/save_dir/gta5_6_saved_params2.pkl"
+    # load clip_model
+    # device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    # clip_model, preprocess = clip.load('RN50', device, jit=False)
+
+    # parameter
+    param_root3 = "/workspace/ssd0/byeongcheol/DGSS/FAMix/save_dir/gta5_3_saved_params_score.pkl"
+    param_root4 = "/workspace/ssd0/byeongcheol/DGSS/FAMix/save_dir/gta5_4_saved_params_score.pkl"
+    param_root6 = "/workspace/ssd0/byeongcheol/DGSS/FAMix/save_dir/gta5_6_saved_params_score.pkl"
 
     with open(param_root3, "rb") as f:
         params3 = pickle.load(f)
@@ -25,8 +124,6 @@ if __name__ == "__main__":
         params4 = pickle.load(f)
     with open(param_root6, "rb") as f:
         params6 = pickle.load(f)
-    
-    # ipdb.set_trace()
 
     param = []
     labels = []
@@ -57,9 +154,17 @@ if __name__ == "__main__":
     param.append(param_6)
     labels.append(np.array([2] * len(param_6)))
 
+    # Generate general embedding 
+    # target = args.className
+    # target = compose_text_with_templates(target, imagenet_templates)
+    # embedding = clip_gen(target)
+
+    ipdb.set_trace()
+
+
     param = np.concatenate(param, axis=0)
     labels = np.concatenate(labels, axis=0)
-
+    
     # concatenate
     colors = [
         '#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd',

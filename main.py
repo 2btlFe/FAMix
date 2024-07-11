@@ -22,8 +22,7 @@ import logging
 
 from torch.utils.tensorboard import SummaryWriter
 
-
-def calculate_patch_loss(outputs, lbl_patches, new_side, most_list, style_matches, loaded_dict_patches, writer, cur_itrs):
+def calculate_patch_loss(outputs, labels, patch_meta, loaded_dict_patches, writer, cur_itrs=None):
     """
     Calculate the loss for each patches
     outputs: [B, 19, H, W]
@@ -36,36 +35,71 @@ def calculate_patch_loss(outputs, lbl_patches, new_side, most_list, style_matche
     cur_itrs: int
     """
     # ipdb.set_trace()
-    output_patches = unfold(outputs, kernel_size=new_side, stride=new_side).permute(-1,0,1)
-    output_patches = output_patches.reshape(output_patches.shape[0],output_patches.shape[1],19,new_side,new_side) #### (div*div, B, 1, H/div, W/div)
-    
-    for j in range(len(output_patches)): ### iterate on dim 0 (div*div)
-        for k in range(output_patches[0].shape[0]): # batch
-            patch = output_patches[j][k].unsqueeze(0)       #[1, 19, H/div, W/div]
-            label = lbl_patches[j][k].cuda()                #[1, 1, H/div, W/div]
+    for i in range(len(patch_meta)):
+        batch, h, w, side, most, style_idx = patch_meta[i]
+
+        patch = outputs[batch, :, h:h+side, w:w+side].unsqueeze(0)      #[1, 19, H/div, W/div]
+        label = labels[batch, :, h:h+side, w:w+side]                    #[1, H/div, W/div]
+        label = label.to(torch.long).cuda()
+
+        # ipdb.set_trace()
+
+        loss = nn.CrossEntropyLoss(ignore_index=255, reduction='mean',label_smoothing=0.1)    
+        loss_patch = loss(patch, label)
         
-            loss = nn.CrossEntropyLoss(ignore_index=255, reduction='mean',label_smoothing=0.1)
-            
-            loss_patch = loss(patch, label)
-            patch_style_idx = int(style_matches[j][k])
+        if most == 255:
+            most = '255'
+        
+        metadata = loaded_dict_patches[most+'_mu'][style_idx][1]
+        style = metadata['style']
+        
+        if metadata['score'] == 0:
+            loaded_dict_patches[most+'_mu'][style_idx][1]['score'] = loss_patch.item()
+            loaded_dict_patches[most+'_std'][style_idx][1]['score'] = loss_patch.item()
+        else:    
+            loaded_dict_patches[most+'_mu'][style_idx][1]['score'] = 0.9 * loaded_dict_patches[most+'_mu'][style_idx][1]['score'] + 0.1 * loss_patch.item()
+            loaded_dict_patches[most+'_std'][style_idx][1]['score'] = 0.9 * loaded_dict_patches[most+'_std'][style_idx][1]['score'] + 0.1 * loss_patch.item()
+        
+            writer.add_scalar(f"loss_patch_{most}_{style}_{style_idx}", loss_patch, cur_itrs)
 
-            # ipdb.set_trace()
-            if most_list[j][k] == 255:
-                most_list[j][k] = '255'
-                
-            metadata = loaded_dict_patches[most_list[j][k]+'_mu'][patch_style_idx][1]
-            style = metadata['style']
-            
-            if metadata['score'] == 0:
-                loaded_dict_patches[most_list[j][k]+'_mu'][patch_style_idx][1]['score'] = loss_patch.item()
-                loaded_dict_patches[most_list[j][k]+'_std'][patch_style_idx][1]['score'] = loss_patch.item()
-            else:    
-                loaded_dict_patches[most_list[j][k]+'_mu'][patch_style_idx][1]['score'] = 0.9 * loaded_dict_patches[most_list[j][k]+'_mu'][patch_style_idx][1]['score'] + 0.1 * loss_patch.item()
-                loaded_dict_patches[most_list[j][k]+'_std'][patch_style_idx][1]['score'] = 0.9 * loaded_dict_patches[most_list[j][k]+'_std'][patch_style_idx][1]['score'] + 0.1 * loss_patch.item()
+def fine_dominant_class(lbl_patch):
+    '''
+    lbl_patch: [1, H, W]
+    '''
 
-            # ipdb.set_trace()
+    _, h, w = lbl_patch.shape
+    most = torch.mode(torch.flatten(lbl_patch)).values
+    most_np = most.item()
 
-            writer.add_scalar(f"loss_patch_{most_list[j][k]}_{style}_{patch_style_idx}", loss_patch, cur_itrs)
+    if most_np == 255:
+        return 255
+    else:
+        # 중앙과 중앙 근처의 4개 요소를 배열로 만듦
+        central_elements = np.array([
+            lbl_patch[0, h//2, w//2],
+            lbl_patch[0, h//2 - 1, w//2],
+            lbl_patch[0, h//2, w//2 - 1],
+            lbl_patch[0, h//2 - 1, w//2 - 1]
+        ])
+
+        # 모든 요소가 most와 같은지 확인
+        if not np.all(central_elements == most_np):
+            return -1 
+        
+        cnt = 0
+        # lbl_patch의 가장자리가 모두 most로 되어 있는지 여부를 확인
+        top_edge = np.all(np.array(lbl_patch[0, 0, :]) == most_np)
+        bottom_edge = np.all(np.array(lbl_patch[0, h-1, :]) == most_np)
+        left_edge = np.all(np.array(lbl_patch[0, :, 0]) == most_np)
+        right_edge = np.all(np.array(lbl_patch[0, :, w-1]) == most_np)
+
+        # 조건이 참인 경우 cnt 증가
+        cnt = sum([top_edge, bottom_edge, left_edge, right_edge])
+
+        if cnt >= 2:
+            return -1
+        else:
+            return most
 
 
 
@@ -338,11 +372,6 @@ def main():
             'bicycle'
         ]
 
-        iou_dict = {class_name: val_score["Class IoU"][i] for i, class_name in enumerate(class_names)} 
-        writer.add_scalar("mIoU", val_score['Mean IoU'] ,cur_itrs)
-        writer.add_scalars("IoU_per_class", iou_dict, cur_itrs)
-        
-
         save_txt = f"{opts.ckpts_path}/logs_PODA_val_gta5_{opts.dataset}.txt"
 
         # save_txt = f"logs_PODA_val_gta5_{opts.dataset}.txt"
@@ -436,7 +465,8 @@ def main():
             # lbl_patches = divide_in_patches(labels_,3)
 
             side = labels.size()[2]
-            new_side = int(side // div)
+            # 24/7/8 - 2로 고정하고 점차 2, 4, 8, 까지 늘려서 적용해보고 안되면 멈춘다
+            new_side = int(side // 2)
 
             lbl_patches = unfold(labels_, kernel_size=new_side, stride=new_side).permute(-1,0,1)
             lbl_patches = lbl_patches.reshape(lbl_patches.shape[0],lbl_patches.shape[1],1,new_side,new_side) #### (div*div, B, 1, H/div, W/div)
@@ -444,8 +474,15 @@ def main():
 
             most_list = []
             for j in range(len(lbl_patches)): ### iterate on dim 0 (div*div)
-                most = [Cityscapes.name(torch.mode(torch.flatten(lbl_patches[j][k])).values) if torch.mode(torch.flatten(lbl_patches[j][k])).values != 255 else 255 for k in range(lbl_patches[0].shape[0])]
-                most_list.append(most) #len=div*div , each element list of B elements
+                tmp_list = []
+                for k in range(len(lbl_patches[0])):
+                    dominant_cls = fine_dominant_class(lbl_patches[j][k])
+                    
+                    if dominant_cls == -1 or dominant_cls == 255:
+                        tmp_list.append(dominant_cls)
+                    else:
+                        tmp_list.append(Cityscapes.name(int(dominant_cls)))
+                most_list.append(tmp_list) #len=div*div , each element list of B elements
             
             # Mix proportion for the mixup
             beta_dist = torch.distributions.beta.Beta(0.1, 0.1)
@@ -455,7 +492,7 @@ def main():
             if opts.patch_method == "default":
                 outputs,features = model(images, transfer=opts.transfer,mix=True,most_list=most_list,saved_params=loaded_dict_patches, activation=relu,s=s, div=div, mode=opts.patch_method)
             elif opts.patch_method == "analysis":
-                outputs, features, style_matches = model(images, transfer=opts.transfer,mix=True,most_list=most_list,saved_params=loaded_dict_patches, activation=relu,s=s, div=div, mode=opts.patch_method)
+                outputs, features, patch_meta  = model(images, transfer=opts.transfer,mix=True,most_list=most_list,saved_params=loaded_dict_patches, activation=relu,s=s, div=2, mode=opts.patch_method, labels=labels_)
             else:
                 outputs,features = model(images, transfer=opts.transfer,mix=True,most_list=most_list,saved_params=loaded_dict_patches, saved_params_4=loaded_dict_patches_list[1], saved_params_6=loaded_dict_patches_list[2], activation=relu,s=s, div=div, mode=opts.patch_method)
 
@@ -467,7 +504,7 @@ def main():
             # Calculate the loss for each patches
             # ipdb.set_trace()
             with torch.no_grad():
-                calculate_patch_loss(outputs, lbl_patches, new_side, most_list, style_matches, loaded_dict_patches, writer, cur_itrs)
+                calculate_patch_loss(outputs, labels_, patch_meta, loaded_dict_patches, writer, cur_itrs)
 
             # ipdb.set_trace()
             
@@ -516,9 +553,10 @@ def main():
             scheduler.step()
 
             if cur_itrs >= opts.total_itrs:
-                pickle.save(loaded_dict_patches, f"{opts.ckpts_path}/final_stats.pkl")
+                with open(f"{opts.ckpts_path}/final_stats.pkl", 'wb') as f:
+                    pickle.dump(loaded_dict_patches, f)
+                
                 return
             
-
 if __name__ == '__main__':
     main()

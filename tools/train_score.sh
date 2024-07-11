@@ -1,6 +1,6 @@
 DATASET=gta5
 DATAROOT=/workspace/ssd0/byeongcheol/DGSS/Data/GTA5
-PATCH_SIZE=$1
+
 DATE=$(date +"%Y%m%d")
 TIME=$(date +"%H-%M-%S")
 # PATCH_METHOD=('default' 'random' 'alternate' 'division' 'reverse_division')
@@ -8,7 +8,9 @@ TIME=$(date +"%H-%M-%S")
 # Fusion
 # PATCH_METHOD='fusion' 'fusion_mlp' 'fusion_adv' 
 
-PATCH_METHOD=$2
+PARAM_PATH=$1
+PATCH_SIZE=$2
+PATCH_METHOD=$3
 
 python3 main.py \
 --dataset ${DATASET} \
@@ -19,6 +21,6 @@ python3 main.py \
 --transfer \
 --data_aug \
 --ckpts_path model_ckpt_${PATCH_SIZE}_${PATCH_METHOD}_${DATE}_${TIME} \
---path_for_stats save_dir/${DATASET}_${PATCH_SIZE}_saved_params_score.pkl  \
+--path_for_stats ${PARAM_PATH} \
 --patch_method ${PATCH_METHOD} \
 --div ${PATCH_SIZE} \
